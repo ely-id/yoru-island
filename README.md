@@ -5,7 +5,7 @@
 
 - Pursuting lightweight, smooth anim, and low-latency performance.
 
-- **⚠️ Please read this, it's not that long**
+- **⚠️ To ensure you don't encounter unnecessary problems, read Important things and dependcies**
 ### usage
 
 Memory usage: < 200 Mb (PSS)
