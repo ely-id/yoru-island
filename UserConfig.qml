@@ -13,7 +13,7 @@ QtObject {
     property string timeFontFamily: "Inter Display"
     // Plain-text sudo password for TLP mode switches.
     // Leave empty to disable this path.
-    property string tlpSudoPassword: ""
+    property string tlpSudoPassword: " your password "
 
     // Set these to `0` if you want to disable the in-overview key handling.
     property int overviewCloseKey: 16777216
