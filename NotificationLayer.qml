@@ -1,6 +1,8 @@
 import QtQuick
 
 Item {
+    id: root
+
     UserConfig {
         id: userConfig
     }
@@ -10,9 +12,11 @@ Item {
     property string summary: ""
     property string body: ""
     property string iconText: ""
-    property string iconFontFamily: userConfig.iconFontFamily
-    property string textFontFamily: userConfig.textFontFamily
-    property string heroFontFamily: userConfig.heroFontFamily
+    property var configSource: null
+    readonly property var activeConfig: configSource || userConfig
+    property string iconFontFamily: activeConfig.iconFontFamily
+    property string textFontFamily: activeConfig.textFontFamily
+    property string heroFontFamily: activeConfig.heroFontFamily
 
     readonly property string contentText: {
         if (summary !== "" && body !== "" && body !== summary) return summary + "  " + body;

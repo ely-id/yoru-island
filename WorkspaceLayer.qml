@@ -1,13 +1,17 @@
 import QtQuick
 
 Item {
+    id: root
+
     UserConfig {
         id: userConfig
     }
 
     property int workspaceId: 1
     property string displayText: "Workspace " + workspaceId
-    property string textFontFamily: userConfig.textFontFamily
+    property var configSource: null
+    readonly property var activeConfig: configSource || userConfig
+    property string textFontFamily: activeConfig.textFontFamily
     property bool showCondition: false
     property int textPixelSize: 16
     property string slideDirection: "none"

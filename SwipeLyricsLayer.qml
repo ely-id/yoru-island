@@ -9,8 +9,10 @@ Item {
 
     property string lyricText: ""
     property string timeText: ""
-    property string textFontFamily: userConfig.textFontFamily
-    property string timeFontFamily: userConfig.timeFontFamily
+    property var configSource: null
+    readonly property var activeConfig: configSource || userConfig
+    property string textFontFamily: activeConfig.textFontFamily
+    property string timeFontFamily: activeConfig.timeFontFamily
     property bool showCondition: false
     property bool showSecondaryText: true
     property real transitionProgress: 0

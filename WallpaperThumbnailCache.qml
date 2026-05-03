@@ -14,6 +14,8 @@ Item {
     property int targetHeight: 540
     property int quality: 86
     property int refreshDebounceInterval: 140
+    property int retryBackoffInterval: 1500
+    property int maxFailureRetries: 2
 
     readonly property string normalizedSourcePath: localPath(sourcePath)
     readonly property string imageMagickExecutable: {
@@ -36,6 +38,7 @@ Item {
     property bool refreshPending: false
     property string inFlightCachePath: ""
     property string inFlightSourcePath: ""
+    property int consecutiveFailureCount: 0
     readonly property bool busy: refreshPending || refreshDebounceTimer.running || thumbnailProcess.running
 
     function localPath(value) {
@@ -73,12 +76,16 @@ Item {
     }
 
     function scheduleRefresh() {
+        consecutiveFailureCount = 0;
         refreshPending = true;
+        refreshDebounceTimer.interval = refreshDebounceInterval;
         refreshDebounceTimer.restart();
     }
 
     function refreshNow() {
+        consecutiveFailureCount = 0;
         refreshPending = true;
+        refreshDebounceTimer.interval = refreshDebounceInterval;
         refreshDebounceTimer.stop();
         refreshCache();
     }
@@ -134,6 +141,12 @@ Item {
         cacheAvailable = hasCacheOnDisk();
         scheduleRefresh();
     }
+    Component.onDestruction: {
+        refreshDebounceTimer.stop();
+        refreshPending = false;
+        if (thumbnailProcess.running)
+            thumbnailProcess.running = false;
+    }
 
     Timer {
         id: refreshDebounceTimer
@@ -167,12 +180,36 @@ Item {
 
             if (targetStillCurrent) {
                 root.cacheAvailable = root.hasCacheOnDisk();
+                if (exitCode === 0) {
+                    root.consecutiveFailureCount = 0;
+                    refreshDebounceTimer.interval = root.refreshDebounceInterval;
+                } else {
+                    root.consecutiveFailureCount += 1;
+                }
+
                 if (exitCode === 0 && root.cacheAvailable)
                     root.cacheRevision += 1;
             }
 
-            if (root.refreshPending || !targetStillCurrent)
+            if (!targetStillCurrent) {
+                root.consecutiveFailureCount = 0;
+                refreshDebounceTimer.interval = root.refreshDebounceInterval;
                 refreshDebounceTimer.restart();
+                return;
+            }
+
+            if (root.refreshPending) {
+                if (root.consecutiveFailureCount <= root.maxFailureRetries) {
+                    refreshDebounceTimer.interval = root.consecutiveFailureCount > 0
+                        ? root.retryBackoffInterval
+                        : root.refreshDebounceInterval;
+                    refreshDebounceTimer.restart();
+                } else {
+                    root.refreshPending = false;
+                    refreshDebounceTimer.stop();
+                    refreshDebounceTimer.interval = root.refreshDebounceInterval;
+                }
+            }
         }
     }
 }

@@ -1,12 +1,16 @@
 import QtQuick
 
 Item {
+    id: root
+
     UserConfig {
         id: userConfig
     }
 
     property string iconText: ""
-    property string iconFontFamily: userConfig.iconFontFamily
+    property var configSource: null
+    readonly property var activeConfig: configSource || userConfig
+    property string iconFontFamily: activeConfig.iconFontFamily
     property string slideDirection: "none"
     property real transitionProgress: 0
     property bool showCondition: false

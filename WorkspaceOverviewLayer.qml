@@ -17,6 +17,7 @@ Item {
     required property var hyprlandData
 
     property bool showCondition: false
+    property bool previewsEnabled: showCondition
     property string textFontFamily: userConfig.textFontFamily
     property string heroFontFamily: userConfig.heroFontFamily
     property string wallpaperPath: "/home/dan/.config/hypr/wallpaper.png"
@@ -79,6 +80,11 @@ Item {
 
     property int draggingFromWorkspace: -1
     property int draggingTargetWorkspace: -1
+    property var windowToplevels: []
+    property string _windowToplevelsSignature: ""
+    readonly property var toplevelValues: ToplevelManager.toplevels && ToplevelManager.toplevels.values
+        ? ToplevelManager.toplevels.values
+        : []
 
     signal closeRequested()
 
@@ -128,6 +134,92 @@ Item {
             return -1;
 
         return workspaceGroup * workspacesShown + getWsInCell(rowIndex, columnIndex);
+    }
+
+    function normalizeToplevelAddress(toplevel) {
+        const rawAddress = toplevel && toplevel.HyprlandToplevel
+            ? String(toplevel.HyprlandToplevel.address || "")
+            : "";
+        return rawAddress.startsWith("0x")
+            ? rawAddress.toLowerCase()
+            : ("0x" + rawAddress).toLowerCase();
+    }
+
+    function clearWindowToplevels() {
+        windowModelRefreshTimer.stop();
+        draggingFromWorkspace = -1;
+        draggingTargetWorkspace = -1;
+        _windowToplevelsSignature = "";
+        if (windowToplevels.length > 0)
+            windowToplevels = [];
+    }
+
+    function scheduleWindowToplevelRefresh() {
+        if (!showCondition) {
+            clearWindowToplevels();
+            return;
+        }
+
+        windowModelRefreshTimer.restart();
+    }
+
+    function refreshWindowToplevels() {
+        if (!showCondition) {
+            clearWindowToplevels();
+            return;
+        }
+
+        const startWorkspace = workspaceGroup * workspacesShown;
+        const endWorkspace = (workspaceGroup + 1) * workspacesShown;
+        const byAddress = hyprlandData && hyprlandData.windowByAddress
+            ? hyprlandData.windowByAddress
+            : {};
+        const nextToplevels = [];
+        let nextSignature = "";
+
+        for (let index = 0; index < toplevelValues.length; index++) {
+            const toplevel = toplevelValues[index];
+            const address = normalizeToplevelAddress(toplevel);
+            const windowData = byAddress[address] || null;
+            const workspaceId = windowData && windowData.workspace ? windowData.workspace.id : -1;
+
+            if (workspaceId > startWorkspace && workspaceId <= endWorkspace) {
+                nextToplevels.push(toplevel);
+                nextSignature += address + "\u001e";
+            }
+        }
+
+        if (nextSignature === _windowToplevelsSignature)
+            return;
+
+        _windowToplevelsSignature = nextSignature;
+        windowToplevels = nextToplevels;
+    }
+
+    onShowConditionChanged: {
+        if (showCondition)
+            scheduleWindowToplevelRefresh();
+        else
+            clearWindowToplevels();
+    }
+    onWorkspaceGroupChanged: scheduleWindowToplevelRefresh()
+    onToplevelValuesChanged: scheduleWindowToplevelRefresh()
+
+    Component.onCompleted: scheduleWindowToplevelRefresh()
+
+    Timer {
+        id: windowModelRefreshTimer
+        interval: 80
+        repeat: false
+        onTriggered: root.refreshWindowToplevels()
+    }
+
+    Connections {
+        target: root.hyprlandData
+
+        function onWindowByAddressChanged() {
+            root.scheduleWindowToplevelRefresh();
+        }
     }
 
     Behavior on opacity {
@@ -271,28 +363,7 @@ Item {
                 anchors.fill: workspaceColumnLayout
 
                 Repeater {
-                    model: ScriptModel {
-                        values: {
-                            const values = ToplevelManager.toplevels && ToplevelManager.toplevels.values
-                                ? ToplevelManager.toplevels.values
-                                : [];
-
-                            return values.filter((toplevel) => {
-                                const rawAddress = toplevel && toplevel.HyprlandToplevel
-                                    ? String(toplevel.HyprlandToplevel.address || "")
-                                    : "";
-                                const address = rawAddress.startsWith("0x")
-                                    ? rawAddress.toLowerCase()
-                                    : ("0x" + rawAddress).toLowerCase();
-                                const windowData = root.hyprlandData && root.hyprlandData.windowByAddress
-                                    ? root.hyprlandData.windowByAddress[address]
-                                    : null;
-                                const workspaceId = windowData && windowData.workspace ? windowData.workspace.id : -1;
-                                return workspaceId > root.workspaceGroup * root.workspacesShown
-                                    && workspaceId <= (root.workspaceGroup + 1) * root.workspacesShown;
-                            });
-                        }
-                    }
+                    model: root.windowToplevels
 
                     delegate: WorkspaceOverviewWindow {
                         id: windowTile
@@ -327,6 +398,7 @@ Item {
                             ? root.hyprlandData.windowByAddress[address]
                             : null
                         toplevel: modelData
+                        previewEnabled: root.previewsEnabled
                         visible: workspaceId > root.workspaceGroup * root.workspacesShown
                             && workspaceId <= (root.workspaceGroup + 1) * root.workspacesShown
                         scale: root.scale

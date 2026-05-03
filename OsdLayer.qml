@@ -1,6 +1,8 @@
 import QtQuick
 
 Item {
+    id: root
+
     UserConfig {
         id: userConfig
     }
@@ -8,9 +10,11 @@ Item {
     property string iconText: ""
     property real progress: -1
     property string customText: ""
-    property string iconFontFamily: userConfig.iconFontFamily
-    property string textFontFamily: userConfig.textFontFamily
-    property string heroFontFamily: userConfig.heroFontFamily
+    property var configSource: null
+    readonly property var activeConfig: configSource || userConfig
+    property string iconFontFamily: activeConfig.iconFontFamily
+    property string textFontFamily: activeConfig.textFontFamily
+    property string heroFontFamily: activeConfig.heroFontFamily
     property string slideDirection: "none"
     property real transitionProgress: 0
     readonly property bool showProgress: progress >= 0

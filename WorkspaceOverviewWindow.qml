@@ -16,6 +16,7 @@ Item {
     property real xOffset: 0
     property real yOffset: 0
     property bool centerIcons: true
+    property bool previewEnabled: true
     property bool hovered: false
     property bool pressed: false
     property bool draggingActive: false
@@ -64,9 +65,31 @@ Item {
 
         return windowData.class || windowData.initialClass || windowData.app_id || windowData.initialTitle || windowData.title || "";
     }
-    readonly property string iconPath: Quickshell.iconPath(iconLookupName || "application-x-executable", "image-missing")
     readonly property bool compactMode: Math.min(targetWindowWidth, targetWindowHeight) < 120
-    readonly property bool previewActive: visible && opacity > 0 && !!toplevel
+    readonly property string iconThemeName: resolveIconThemeName(iconLookupName)
+    readonly property string iconPath: compactMode
+        ? Quickshell.iconPath(iconThemeName, "image-missing")
+        : ""
+    readonly property bool previewActive: previewEnabled && visible && opacity > 0 && !!toplevel
+
+    function resolveIconThemeName(rawName) {
+        const name = String(rawName === undefined || rawName === null ? "" : rawName).trim();
+        if (name === "")
+            return "application-x-executable";
+
+        const lowerName = name.toLowerCase();
+        switch (lowerName) {
+        case "code":
+        case "code-url-handler":
+            return "application-x-executable";
+        case "spotify":
+            return "spotify";
+        default:
+            return lowerName.indexOf("xingchenproj") !== -1
+                ? "application-x-executable"
+                : name;
+        }
+    }
     x: initX
     y: initY
     width: targetWindowWidth
@@ -135,16 +158,30 @@ Item {
             id: appIcon
 
             readonly property real iconSize: Math.max(18, Math.min(root.width, root.height) * (root.compactMode ? 0.52 : 0.32))
+            property bool iconLoadFailed: false
 
             anchors.centerIn: parent
-            visible: root.compactMode
-            source: root.iconPath
+            visible: root.compactMode && source !== ""
+            source: root.compactMode && !iconLoadFailed ? root.iconPath : ""
             width: iconSize
             height: iconSize
             sourceSize: Qt.size(width, height)
             mipmap: true
             smooth: true
             opacity: 0.96
+
+            onStatusChanged: {
+                if (status === Image.Error)
+                    iconLoadFailed = true;
+            }
+
+            Connections {
+                target: root
+
+                function onIconPathChanged() {
+                    appIcon.iconLoadFailed = false;
+                }
+            }
         }
     }
 }

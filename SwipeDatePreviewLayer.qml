@@ -1,13 +1,17 @@
 import QtQuick
 
 Item {
+    id: root
+
     UserConfig {
         id: userConfig
     }
 
     property string leadingText: ""
     property string trailingText: ""
-    property string heroFontFamily: userConfig.heroFontFamily
+    property var configSource: null
+    readonly property var activeConfig: configSource || userConfig
+    property string heroFontFamily: activeConfig.heroFontFamily
     property bool showCondition: false
     property real transitionProgress: 0
     property int textPixelSize: 18

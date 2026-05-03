@@ -18,16 +18,8 @@ Item {
     property string heroFontFamily: userConfig.heroFontFamily
     // ... rest of properties ...
 
-    opacity: showCondition ? 1.0 : 0.0
     scale: showCondition ? 1.0 : 0.12
     transformOrigin: Item.Top
-
-    Behavior on opacity {
-        NumberAnimation {
-            duration: 250
-            easing.type: Easing.OutCubic
-        }
-    }
 
     Behavior on scale {
         NumberAnimation {
@@ -57,6 +49,25 @@ Item {
     property bool sliderIntroPending: false
     property bool wifiPanelOpen: false
     property bool bluetoothPanelOpen: false
+    property bool batteryDrawerOpen: false
+    property bool batteryDrawerDragging: false
+    property real batteryDrawerProgress: 0
+    property bool batteryDrawerSettling: false
+    readonly property bool batteryDrawerMoving: batteryDrawerDragging
+        || batteryDrawerSettling
+        || batteryDrawerProgressAnimation.running
+    property bool batteryModeBusy: false
+    property bool batteryModeSliderDragging: false
+    property bool batteryTlpAvailable: false
+    property bool batteryTlpChecked: false
+    property int batteryModeIndex: 1
+    property int batteryModeAppliedIndex: 1
+    property int batteryModePendingIndex: 1
+    property real batteryModeDragOffset: 0
+    property string batteryModeInfoMessage: ""
+    property string batteryModeError: ""
+    property string batteryModeLastCommandOutput: ""
+    property int batteryModeRefreshPollsRemaining: 0
 
     property string wifiLocalInfoMessage: ""
     property string wifiLocalError: ""
@@ -87,6 +98,14 @@ Item {
     readonly property color buttonFillPressed: "#e9e9ec"
     readonly property string wifiGlyph: ""
     readonly property string bluetoothGlyph: ""
+    readonly property var batteryModeGlyphs: ["", "", ""]
+    readonly property real batteryDrawerHandleHeight: 20
+    readonly property real batteryDrawerContentGap: 8
+    readonly property real batteryModeCardHeight: 80
+    readonly property real controlCenterExtraHeight: 12 + batteryDrawerHandleHeight
+        + batteryDrawerProgress * (batteryDrawerContentGap + batteryModeCardHeight)
+    readonly property real controlCenterMaximumExtraHeight: 12 + batteryDrawerHandleHeight
+        + batteryDrawerContentGap + batteryModeCardHeight
     readonly property bool bluetoothAvailable: !!bluetoothAdapter
     readonly property var bluetoothAdapter: Bluetooth.defaultAdapter
     readonly property var bluetoothDeviceValues: bluetoothAdapter ? bluetoothAdapter.devices.values : []
@@ -126,6 +145,7 @@ Item {
     readonly property string wifiStatusText: wifiController ? wifiController.statusText : "Unavailable"
     readonly property string bluetoothStatusText: buildBluetoothStatusText()
     readonly property string bluetoothAvailabilityMessage: bluetoothAvailable ? "" : "No Bluetooth adapter is available."
+    readonly property string batteryModeStatusText: buildBatteryModeStatusText()
 
     function clamp01(value) {
         return Math.max(0, Math.min(1, value));
@@ -134,6 +154,220 @@ Item {
     function trimString(value) {
         if (value === undefined || value === null) return "";
         return String(value).trim();
+    }
+
+    function shellSingleQuote(value) {
+        return "'" + String(value === undefined || value === null ? "" : value).replace(/'/g, "'\"'\"'") + "'";
+    }
+
+    function batteryModeLabel(index) {
+        if (index <= 0) return "Power Saver";
+        if (index >= 2) return "Performance";
+        return "Balanced";
+    }
+
+    function batteryModeCommand(index) {
+        if (index <= 0) return "power-saver";
+        if (index >= 2) return "performance";
+        return "balanced";
+    }
+
+    function batteryModeIndexForCommand(command) {
+        const normalized = trimString(command).toLowerCase();
+        if (normalized === "power-saver" || normalized === "bat") return 0;
+        if (normalized === "performance" || normalized === "ac") return 2;
+        return 1;
+    }
+
+    function setBatteryModeVisualIndex(index, animate) {
+        const nextIndex = Math.max(0, Math.min(2, index));
+        batteryModeIndex = nextIndex;
+    }
+
+    function setBatteryDrawerOpen(open) {
+        const nextOpen = !!open;
+        batteryDrawerOpen = nextOpen;
+        batteryDrawerSettling = true;
+        batteryDrawerProgress = nextOpen ? 1 : 0;
+        batteryDrawerSettleTimer.restart();
+        if (nextOpen && !batteryTlpChecked)
+            refreshBatteryModeState();
+    }
+
+    function toggleBatteryDrawer() {
+        setBatteryDrawerOpen(!batteryDrawerOpen);
+    }
+
+    function refreshBatteryModeState() {
+        if (batteryModeStateProcess.running)
+            return;
+
+        batteryModeStateProcess.exec(["sh", "-lc", "if command -v tlp >/dev/null 2>&1; then echo __TLP_AVAILABLE__; if command -v tlp-stat >/dev/null 2>&1; then tlp-stat -s 2>/dev/null; fi; else echo __TLP_MISSING__; fi"]);
+    }
+
+    function applyBatteryModeStateOutput(text) {
+        batteryTlpChecked = true;
+        batteryTlpAvailable = text.indexOf("__TLP_AVAILABLE__") >= 0;
+
+        if (!batteryTlpAvailable) {
+            batteryModeBusy = false;
+            batteryModeError = "TLP is not installed.";
+            setBatteryModeVisualIndex(batteryModeAppliedIndex, true);
+            return;
+        }
+
+        if (batteryModeError === "TLP is not installed.")
+            batteryModeError = "";
+
+        const profileMatch = text.match(/TLP profile\s*=\s*([a-z-]+)/i);
+        if (profileMatch) {
+            const nextIndex = batteryModeIndexForCommand(profileMatch[1]);
+            batteryModeAppliedIndex = nextIndex;
+            setBatteryModeVisualIndex(nextIndex, true);
+
+            if (batteryModeRefreshPollsRemaining > 0 && nextIndex === batteryModePendingIndex) {
+                batteryModeRefreshPollsRemaining = 0;
+                batteryModeRefreshTimer.stop();
+                batteryModeError = "";
+                batteryModeInfoMessage = batteryModeLabel(nextIndex) + " active.";
+            }
+        }
+    }
+
+    function buildBatteryModeStatusText() {
+        if (batteryModeBusy) return "Applying " + batteryModeLabel(batteryModePendingIndex);
+        if (!batteryTlpChecked) return "Checking TLP";
+        if (!batteryTlpAvailable) return "TLP is not installed";
+        return batteryModeLabel(batteryModeIndex);
+    }
+
+    function rollbackBatteryMode(message) {
+        batteryModeBusy = false;
+        batteryModeError = message;
+        batteryModeInfoMessage = "";
+        batteryModeDragOffset = 0;
+        setBatteryModeVisualIndex(batteryModeAppliedIndex, true);
+    }
+
+    function classifyBatteryModeFailure(exitCode) {
+        const details = trimString(batteryModeLastCommandOutput).toLowerCase();
+
+        if (details.indexOf("sorry, try again") >= 0 || details.indexOf("incorrect password attempt") >= 0)
+            return "The stored sudo password did not work.";
+        if (details.indexOf("sudo:") >= 0 && details.indexOf("password") >= 0)
+            return "sudo needs a password; config it in UserConfig or use the terminal fallback.";
+        if (details.indexOf("sudo:") >= 0 && details.indexOf("no new privileges") >= 0)
+            return "sudo is blocked by the current process security flags.";
+        if (details.indexOf("sudo:") >= 0 && details.indexOf("a terminal is required") >= 0)
+            return "sudo needs a real terminal, but the panel could not open one.";
+        if (details.indexOf("missing root privilege") >= 0)
+            return "TLP needs admin permission.";
+        if (details.indexOf("command not found") >= 0 || details.indexOf("not found") >= 0) {
+            if (details.indexOf("tlp") >= 0)
+                return "TLP is not installed.";
+        }
+
+        if (exitCode === 127)
+            return "TLP is not installed.";
+        if (exitCode === 126)
+            return "No supported terminal launcher was found for sudo.";
+        return "TLP could not apply that mode.";
+    }
+
+    function queueBatteryModeStateRefresh(polls) {
+        batteryModeRefreshPollsRemaining = Math.max(0, polls);
+        if (batteryModeRefreshPollsRemaining > 0)
+            batteryModeRefreshTimer.restart();
+        else
+            batteryModeRefreshTimer.stop();
+    }
+
+    function selectBatteryMode(index) {
+        if (batteryModeBusy) {
+            if (batteryModeSetter.running)
+                batteryModeSetter.running = false;
+            batteryModeBusy = false;
+        }
+
+        queueBatteryModeStateRefresh(0);
+
+        const nextIndex = Math.max(0, Math.min(2, index));
+
+        if (!batteryTlpChecked) {
+            refreshBatteryModeState();
+            rollbackBatteryMode("Checking TLP. Try again in a moment.");
+            return;
+        }
+
+        if (!batteryTlpAvailable) {
+            rollbackBatteryMode("TLP is not installed.");
+            return;
+        }
+
+        if (nextIndex === batteryModeAppliedIndex) {
+            batteryModeError = "";
+            batteryModeInfoMessage = batteryModeLabel(nextIndex) + " active.";
+            setBatteryModeVisualIndex(nextIndex, true);
+            return;
+        }
+
+        batteryModePendingIndex = nextIndex;
+        batteryModeBusy = true;
+        batteryModeError = "";
+        batteryModeInfoMessage = "Applying " + batteryModeLabel(nextIndex) + "...";
+        setBatteryModeVisualIndex(nextIndex, true);
+        let batteryCommand = "mode='" + batteryModeCommand(nextIndex) + "'; "
+            + "if ! command -v tlp >/dev/null 2>&1; then exit 127; fi; "
+            + "if [ \"$(id -u)\" -eq 0 ]; then exec tlp \"$mode\"; fi; "
+            + "if command -v sudo >/dev/null 2>&1; then "
+            + "  sudo -n tlp \"$mode\"; "
+            + "  sudo_rc=$?; "
+            + "  if [ \"$sudo_rc\" -eq 0 ]; then exit 0; fi; "
+            + "fi; ";
+
+        if (trimString(userConfig.tlpSudoPassword).length > 0) {
+            batteryCommand += "printf '%s\\n' " + shellSingleQuote(userConfig.tlpSudoPassword)
+                + " | sudo -S -p '' tlp \"$mode\"; "
+                + "sudo_pw_rc=$?; "
+                + "if [ \"$sudo_pw_rc\" -eq 0 ]; then exit 0; fi; ";
+        }
+
+        batteryCommand += "if command -v kitty >/dev/null 2>&1; then "
+            + "  kitty --hold sh -lc \"sudo tlp '$mode'; rc=\\$?; echo; "
+            + "if [ \\$rc -eq 0 ]; then echo 'TLP mode applied.'; else echo 'TLP failed with exit code ' \\$rc'.'; fi; "
+            + "echo; read -r -n 1 -s -p 'Press any key to close...'; exit \\$rc\" >/dev/null 2>&1 & "
+            + "  exit 124; "
+            + "fi; "
+            + "exit 126";
+        batteryModeSetter.exec([
+            "sh",
+            "-lc",
+            batteryCommand
+        ]);
+    }
+
+    function finishBatteryModeApply(exitCode) {
+        batteryModeBusy = false;
+
+        if (exitCode === 124) {
+            batteryModeError = "";
+            batteryModeInfoMessage = "Complete sudo in the Kitty window.";
+            batteryModeDragOffset = 0;
+            setBatteryModeVisualIndex(batteryModeAppliedIndex, true);
+            queueBatteryModeStateRefresh(12);
+            return;
+        }
+
+        if (exitCode !== 0) {
+            rollbackBatteryMode(classifyBatteryModeFailure(exitCode));
+            return;
+        }
+
+        batteryModeAppliedIndex = batteryModePendingIndex;
+        batteryModeError = "";
+        batteryModeInfoMessage = batteryModeLabel(batteryModeAppliedIndex) + " active.";
+        setBatteryModeVisualIndex(batteryModeAppliedIndex, true);
+        refreshBatteryModeState();
     }
 
     function clearWifiPrompt() {
@@ -594,6 +828,7 @@ Item {
             displayedVolume = localVolume;
             sliderIntroTimer.interval = sliderIntroDelay;
             sliderIntroTimer.restart();
+            refreshBatteryModeState();
             requestWifiStateRefresh();
             if (wifiPanelOpen && wifiSupported && wifiEnabled)
                 requestWifiListRefresh(true);
@@ -612,6 +847,7 @@ Item {
         displayedVolume = localVolume;
         brightnessGetter.exec(["brightnessctl", "-m"]);
         volumeGetter.exec(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]);
+        refreshBatteryModeState();
     }
 
     Behavior on opacity {
@@ -636,6 +872,58 @@ Item {
         NumberAnimation {
             duration: 130
             easing.type: Easing.OutCubic
+        }
+    }
+
+    Behavior on batteryDrawerProgress {
+        enabled: !controlCenter.batteryDrawerDragging
+
+        NumberAnimation {
+            id: batteryDrawerProgressAnimation
+            duration: 240
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    Process {
+        id: batteryModeStateProcess
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: controlCenter.applyBatteryModeStateOutput(text)
+        }
+        onExited: function(exitCode) {
+            if (exitCode !== 0 && !controlCenter.batteryTlpAvailable) {
+                controlCenter.batteryTlpChecked = true;
+                controlCenter.rollbackBatteryMode("TLP is not installed.");
+            }
+        }
+    }
+
+    Process {
+        id: batteryModeSetter
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: function(text) {
+                controlCenter.batteryModeLastCommandOutput = controlCenter.trimString(text);
+            }
+        }
+        stderr: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: function(text) {
+                const nextText = controlCenter.trimString(text);
+                if (nextText.length === 0)
+                    return;
+                if (controlCenter.batteryModeLastCommandOutput.length > 0)
+                    controlCenter.batteryModeLastCommandOutput += "\n";
+                controlCenter.batteryModeLastCommandOutput += nextText;
+            }
+        }
+        onRunningChanged: {
+            if (running)
+                controlCenter.batteryModeLastCommandOutput = "";
+        }
+        onExited: function(exitCode) {
+            controlCenter.finishBatteryModeApply(exitCode);
         }
     }
 
@@ -685,6 +973,24 @@ Item {
     }
 
     Timer {
+        id: batteryModeRefreshTimer
+        interval: 1500
+        repeat: true
+        onTriggered: {
+            if (controlCenter.batteryModeRefreshPollsRemaining <= 0) {
+                stop();
+                return;
+            }
+
+            controlCenter.batteryModeRefreshPollsRemaining -= 1;
+            controlCenter.refreshBatteryModeState();
+
+            if (controlCenter.batteryModeRefreshPollsRemaining <= 0)
+                stop();
+        }
+    }
+
+    Timer {
         id: bluetoothScanStopTimer
         interval: 8000
         repeat: false
@@ -693,6 +999,13 @@ Item {
                 controlCenter.bluetoothAdapter.discovering = false;
             controlCenter.bluetoothInfoMessage = "";
         }
+    }
+
+    Timer {
+        id: batteryDrawerSettleTimer
+        interval: 300
+        repeat: false
+        onTriggered: controlCenter.batteryDrawerSettling = false
     }
 
     Connections {
@@ -1252,6 +1565,308 @@ Item {
                             anchors.fill: parent
                             onClicked: controlCenter.toggleConnectivityOverlay("bluetooth")
                         }
+                    }
+                }
+            }
+        }
+
+        Item {
+            id: batteryDrawer
+            readonly property real cardWidth: (width - connectivityCardsRow.spacing) / 2
+            readonly property real modeSlotWidth: 44
+            readonly property real openDistance: controlCenter.batteryModeCardHeight
+                + controlCenter.batteryDrawerContentGap
+
+            width: parent.width
+            height: controlCenter.batteryDrawerHandleHeight
+                + controlCenter.batteryDrawerProgress * openDistance
+            clip: true
+
+            Rectangle {
+                id: batteryModeCard
+                anchors.left: parent.left
+                y: -height + controlCenter.batteryDrawerProgress * height
+                width: batteryDrawer.cardWidth
+                height: controlCenter.batteryModeCardHeight
+                radius: 20
+                color: "#343437"
+                opacity: Math.min(1, controlCenter.batteryDrawerProgress * 1.35)
+                clip: true
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 14
+                    anchors.top: parent.top
+                    anchors.topMargin: 11
+                    text: "Battery"
+                    color: textPrimary
+                    font.pixelSize: 13
+                    font.family: textFontFamily
+                    font.weight: Font.DemiBold
+                }
+
+                Text {
+                    anchors.right: parent.right
+                    anchors.rightMargin: 12
+                    anchors.top: parent.top
+                    anchors.topMargin: 12
+                    width: Math.max(0, parent.width - 88)
+                    text: controlCenter.batteryModeError.length > 0
+                        ? controlCenter.batteryModeError
+                        : (controlCenter.batteryModeInfoMessage.length > 0
+                            ? controlCenter.batteryModeInfoMessage
+                            : controlCenter.batteryModeStatusText)
+                    color: controlCenter.batteryModeError.length > 0 ? "#ff7c72" : "#9b9da4"
+                    horizontalAlignment: Text.AlignRight
+                    font.pixelSize: 9
+                    font.family: textFontFamily
+                    font.weight: Font.Medium
+                    elide: Text.ElideRight
+                }
+
+                Item {
+                    id: batteryModeCarousel
+                    anchors.left: parent.left
+                    anchors.leftMargin: 12
+                    anchors.right: parent.right
+                    anchors.rightMargin: 12
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 8
+                    height: 34
+                    clip: true
+
+                    Item {
+                        id: batteryModeItems
+                        width: batteryDrawer.modeSlotWidth * 3
+                        height: parent.height
+                        x: batteryModeCarousel.width / 2
+                            - batteryDrawer.modeSlotWidth / 2
+                            - controlCenter.batteryModeIndex * batteryDrawer.modeSlotWidth
+                            + controlCenter.batteryModeDragOffset
+
+                        Behavior on x {
+                            enabled: !controlCenter.batteryModeSliderDragging
+
+                            NumberAnimation {
+                                duration: 180
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
+                        Repeater {
+                            model: 3
+
+                            delegate: Item {
+                                x: index * batteryDrawer.modeSlotWidth
+                                width: batteryDrawer.modeSlotWidth
+                                height: batteryModeCarousel.height
+                                opacity: index === controlCenter.batteryModeIndex ? 1 : 0.42
+
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: 140
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: index === controlCenter.batteryModeIndex ? 32 : 28
+                                    height: index === controlCenter.batteryModeIndex ? 28 : 24
+                                    radius: 12
+                                    color: index === controlCenter.batteryModeIndex ? "#f5f5f7" : "#292a2f"
+
+                                    Behavior on width {
+                                        NumberAnimation {
+                                            duration: 140
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
+
+                                    Behavior on height {
+                                        NumberAnimation {
+                                            duration: 140
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: 140
+                                        }
+                                    }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: controlCenter.batteryModeGlyphs[index]
+                                        color: index === controlCenter.batteryModeIndex ? "#1c1c1e" : "#b5b7bf"
+                                        font.pixelSize: index === controlCenter.batteryModeIndex ? 15 : 13
+                                        font.family: iconFontFamily
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom
+                        width: 22
+                        height: 2
+                        radius: 1
+                        color: "#5d6068"
+                        opacity: 0.75
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        property real startX: 0
+                        property int startIndex: 1
+                        property bool moved: false
+
+                        function clampDrag(delta) {
+                            return Math.max(-batteryDrawer.modeSlotWidth, Math.min(batteryDrawer.modeSlotWidth, delta));
+                        }
+
+                        onPressed: function(mouse) {
+                            startX = mouse.x;
+                            startIndex = controlCenter.batteryModeIndex;
+                            moved = false;
+                            controlCenter.batteryModeInfoMessage = "";
+                            controlCenter.batteryModeError = "";
+                            controlCenter.batteryModeSliderDragging = true;
+                            controlCenter.batteryModeDragOffset = 0;
+                        }
+
+                        onPositionChanged: function(mouse) {
+                            if (!pressed)
+                                return;
+
+                            const delta = mouse.x - startX;
+                            if (!moved && Math.abs(delta) < 4)
+                                return;
+
+                            moved = true;
+                            controlCenter.batteryModeDragOffset = clampDrag(delta);
+                        }
+
+                        onReleased: function(mouse) {
+                            const delta = mouse.x - startX;
+                            let nextIndex = startIndex;
+
+                            if (delta <= -18)
+                                nextIndex = Math.min(2, startIndex + 1);
+                            else if (delta >= 18)
+                                nextIndex = Math.max(0, startIndex - 1);
+                            else if (mouse.x < width / 2 - batteryDrawer.modeSlotWidth / 2)
+                                nextIndex = Math.max(0, startIndex - 1);
+                            else if (mouse.x > width / 2 + batteryDrawer.modeSlotWidth / 2)
+                                nextIndex = Math.min(2, startIndex + 1);
+
+                            controlCenter.batteryModeSliderDragging = false;
+                            controlCenter.batteryModeDragOffset = 0;
+                            controlCenter.selectBatteryMode(nextIndex);
+                        }
+
+                        onCanceled: {
+                            controlCenter.batteryModeSliderDragging = false;
+                            controlCenter.batteryModeDragOffset = 0;
+                            controlCenter.setBatteryModeVisualIndex(controlCenter.batteryModeAppliedIndex, true);
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                id: batteryDrawerTunnelShade
+                anchors.left: parent.left
+                anchors.top: parent.top
+                width: batteryDrawer.cardWidth
+                height: Math.max(1, controlCenter.batteryDrawerContentGap * 0.35)
+                z: 6
+                opacity: Math.min(0.34, controlCenter.batteryDrawerProgress * 0.45)
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0
+                        color: "#9a000000"
+                    }
+                    GradientStop {
+                        position: 1
+                        color: "#00000000"
+                    }
+                }
+            }
+
+            Item {
+                id: batteryDrawerHandle
+                anchors.left: parent.left
+                anchors.right: parent.right
+                y: controlCenter.batteryDrawerProgress * batteryDrawer.openDistance
+                height: controlCenter.batteryDrawerHandleHeight
+                z: 10
+
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: 8
+                    width: 48
+                    height: 5
+                    radius: 3
+                    color: controlCenter.batteryDrawerOpen ? "#d4d6dc" : "#8f9198"
+                    opacity: 0.88
+                }
+
+                MouseArea {
+                    id: batteryDrawerHandleArea
+                    anchors.fill: parent
+                    property real pointerGrabOffset: 0
+                    property bool moved: false
+                    property bool suppressClick: false
+
+                    function pointerY(mouse) {
+                        return batteryDrawerHandle.mapToItem(controlCenter, mouse.x, mouse.y).y;
+                    }
+
+                    function itemTop(item) {
+                        return item.mapToItem(controlCenter, 0, 0).y;
+                    }
+
+                    onPressed: function(mouse) {
+                        batteryDrawerSettleTimer.stop();
+                        controlCenter.batteryDrawerSettling = false;
+                        pointerGrabOffset = pointerY(mouse) - itemTop(batteryDrawerHandle);
+                        moved = false;
+                        suppressClick = false;
+                        controlCenter.batteryDrawerDragging = true;
+                    }
+
+                    onPositionChanged: function(mouse) {
+                        const nextHandleY = pointerY(mouse) - pointerGrabOffset - itemTop(batteryDrawer);
+                        if (!moved && Math.abs(nextHandleY - batteryDrawerHandle.y) < 4)
+                            return;
+
+                        moved = true;
+                        suppressClick = true;
+                        controlCenter.batteryDrawerProgress = controlCenter.clamp01(nextHandleY / batteryDrawer.openDistance);
+                    }
+
+                    onReleased: {
+                        controlCenter.batteryDrawerDragging = false;
+                        if (moved)
+                            controlCenter.setBatteryDrawerOpen(controlCenter.batteryDrawerProgress >= 0.55);
+                    }
+
+                    onCanceled: {
+                        controlCenter.batteryDrawerDragging = false;
+                        controlCenter.setBatteryDrawerOpen(controlCenter.batteryDrawerOpen);
+                    }
+
+                    onClicked: {
+                        if (suppressClick) {
+                            suppressClick = false;
+                            return;
+                        }
+
+                        controlCenter.toggleBatteryDrawer();
                     }
                 }
             }
