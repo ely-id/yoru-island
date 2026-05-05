@@ -153,7 +153,7 @@ bind = SUPER, TAB, exec, qs ipc -p ~/.config/quickshell/dynamic_island/shell.qml
 - [@BEST8OY](https://github.com/BEST8OY) - For providing the lyrics support.
 - [@gozhuimeng](https://github.com/gozhuimeng) - For improve the lyrics backend.
 
-## Important thing
+## Important things
 
 - **The backend is hardcoded to read /sys/class/backlight/intel_backlight/. If you are using AMD or a different backlight driver, please update the path (SysBackend.cpp:353).**
 
@@ -162,3 +162,7 @@ bind = SUPER, TAB, exec, qs ipc -p ~/.config/quickshell/dynamic_island/shell.qml
 - **If you encounter any issues, feel free to open an issue!**
 
 -  **Please write your password in UserConfig.qml line 16, to make sure tlp switcher works normally**
+
+## Contact me
+Discord: https://discord.gg/gEmqgz76
+Gmail: enhaoswen@gmail.com
