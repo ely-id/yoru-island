@@ -299,6 +299,7 @@ private:
 
 WifiController::WifiController(QObject *parent)
     : QObject(parent) {
+    qDebug() << "[Wifi] WifiController constructor called";
     qDBusRegisterMetaType<ConnectionSettingsMap>();
     qDBusRegisterMetaType<IwdManagedObjectMap>();
     qDBusRegisterMetaType<IwdOrderedNetworkList>();
