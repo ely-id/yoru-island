@@ -8,6 +8,10 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# Ensure plugins can find libraries in the same directory
+set(CMAKE_INSTALL_RPATH "$ORIGIN")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 find_package(Qt6 REQUIRED COMPONENTS Core Qml Network DBus)
 find_library(UDEV_LIB NAMES udev REQUIRED)
 
@@ -50,6 +54,8 @@ install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/IslandBackend.qmltypes
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/qt6/qml/IslandBackend
 )
+
+
 
 # Install launcher
 install(PROGRAMS tide-island-launcher DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME tide-island)
