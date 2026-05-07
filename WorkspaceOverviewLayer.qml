@@ -20,7 +20,7 @@ Item {
     property bool previewsEnabled: showCondition
     property string textFontFamily: userConfig.textFontFamily
     property string heroFontFamily: userConfig.heroFontFamily
-    property string wallpaperPath: "/home/dan/.config/hypr/wallpaper.png"
+    property string wallpaperPath: userConfig.wallpaperPath
     property real windowCornerRadius: 15
     property real scale: 0.18
     property int rows: 2

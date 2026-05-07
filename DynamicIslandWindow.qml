@@ -45,21 +45,15 @@ PanelWindow {
     color: "transparent"
     anchors { top: true; left: true; right: true }
     mask: Region {
-        item: mainCapsule
-
-        // Keep pointer delivery stable while a side swipe is active, even over empty workspace space.
+        // Expand the clickable region horizontally to capture trackpad gestures better
         Region {
-            intersection: Intersection.Combine
             x: 0
-            y: capsuleMouseArea.sideSwipeInteractive
-                ? Math.max(0, Math.floor(mainCapsule.y - capsuleMouseArea.sideSwipeVerticalTolerance))
-                : 0
-            width: capsuleMouseArea.sideSwipeInteractive ? root.width : 0
-            height: capsuleMouseArea.sideSwipeInteractive
-                ? Math.ceil(mainCapsule.height + capsuleMouseArea.sideSwipeVerticalTolerance * 2)
-                : 0
+            y: 0
+            width: root.width
+            height: Math.ceil(mainCapsule.y + mainCapsule.height + 20)
         }
-
+        
+        // Add existing detail shells
         Region {
             intersection: Intersection.Combine
             x: Math.floor(wifiConnectivityDetailShell.x)
@@ -638,10 +632,10 @@ PanelWindow {
             if (userConfig.overviewCloseKey && event.key === userConfig.overviewCloseKey) {
                 root.closeOverviewEverywhere();
                 event.accepted = true;
-            } else if (userConfig.overviewPreviousWorkspaceKey && event.key === userConfig.overviewPreviousWorkspaceKey) {
+            } else if ((userConfig.overviewPreviousWorkspaceKey && event.key === userConfig.overviewPreviousWorkspaceKey) || (event.key === Qt.Key_Tab && (event.modifiers & Qt.ShiftModifier)) || event.key === Qt.Key_Backtab) {
                 Hyprland.dispatch("workspace r-1");
                 event.accepted = true;
-            } else if (userConfig.overviewNextWorkspaceKey && event.key === userConfig.overviewNextWorkspaceKey) {
+            } else if ((userConfig.overviewNextWorkspaceKey && event.key === userConfig.overviewNextWorkspaceKey) || event.key === Qt.Key_Tab) {
                 Hyprland.dispatch("workspace r+1");
                 event.accepted = true;
             }
@@ -705,7 +699,6 @@ PanelWindow {
                 smartRestoreState();
                 return;
             default:
-                console.warn("Unknown Dynamic Island click action:", actionName);
             }
         }
 
@@ -1835,11 +1828,12 @@ PanelWindow {
                 }
             }
 
+
             MouseArea {
                 id: capsuleMouseArea
                 anchors.fill: parent
                 z: -1
-                enabled: !root.overviewVisible
+                enabled: !root.overviewVisible && twoFingerTouchArea.touchPoints.length < 2
                 acceptedButtons: root.dynamicIslandAcceptedButtons
                 preventStealing: true
                 property real swipeStartX: 0
@@ -1887,7 +1881,7 @@ PanelWindow {
                 }
 
                 onPositionChanged: (mouse) => {
-                    if (!pressed || !swipeArmed || suppressNextClick) return;
+                    if (!pressed || !swipeArmed || suppressNextClick || twoFingerTouchArea.touchPoints.length >= 2) return;
 
                     const mappedPoint = capsuleMouseArea.mapToItem(islandContainer, mouse.x, mouse.y);
                     const deltaX = mappedPoint.x - swipeLastX;
@@ -1985,6 +1979,85 @@ PanelWindow {
                     }
                 }
             }
+
+            MultiPointTouchArea {
+                id: twoFingerTouchArea
+                anchors.fill: parent
+                z: 0
+                enabled: !root.overviewVisible
+                mouseEnabled: false
+                minimumTouchPoints: 2
+                maximumTouchPoints: 2
+
+                property real swipeStartX: 0
+                property real swipeStartProgress: 0
+                property bool swipeMoved: false
+
+                onPressed: (touchPoints) => {
+                    const centerPoint = islandContainer.mapFromItem(twoFingerTouchArea, 
+                        (touchPoints[0].x + touchPoints[1].x) / 2,
+                        (touchPoints[0].y + touchPoints[1].y) / 2);
+                    swipeStartX = centerPoint.x;
+                    swipeStartProgress = islandContainer.swipeTransitionProgress;
+                    swipeMoved = false;
+                    islandContainer.cancelSideSwipeSettle();
+                }
+
+                onUpdated: (touchPoints) => {
+                    const centerPoint = islandContainer.mapFromItem(twoFingerTouchArea, 
+                        (touchPoints[0].x + touchPoints[1].x) / 2,
+                        (touchPoints[0].y + touchPoints[1].y) / 2);
+                    
+                    const deltaX = centerPoint.x - swipeStartX;
+                    // User requested: Swipe Left (deltaX < 0) -> Lyrics (pos progress)
+                    //                 Swipe Right (deltaX > 0) -> Custom (neg progress)
+                    // The advanceSideSwipeProgress function expects Pos deltaX for Pos progress.
+                    // So we invert deltaX to match the user's requested directions.
+                    const logicalDeltaX = -deltaX;
+                    
+                    const nextProgress = islandContainer.advanceSideSwipeProgress(
+                        swipeStartProgress,
+                        logicalDeltaX
+                    );
+
+                    if (Math.abs(nextProgress - swipeStartProgress) > 0.03) {
+                        swipeMoved = true;
+                    }
+
+                    islandContainer.swipeTransitionProgress = nextProgress;
+                    mainCapsule.displayedWidth = mainCapsule.sideSwipePreviewWidth;
+                }
+
+                onReleased: {
+                    if (swipeMoved) {
+                        const settleResult = islandContainer.resolveSideSwipeSettle(
+                            swipeStartProgress,
+                            islandContainer.swipeTransitionProgress
+                        );
+
+                        islandContainer.beginSideSwipeSettle(settleResult.width);
+
+                        switch (settleResult.action) {
+                        case "time":
+                            islandContainer.showTimeCapsule();
+                            break;
+                        case "custom":
+                            islandContainer.showCustomCapsule();
+                            break;
+                        case "lyrics":
+                            islandContainer.showLyricsCapsule();
+                            break;
+                        default:
+                            islandContainer.swipeTransitionProgress = settleResult.progress;
+                        }
+                    } else {
+                        islandContainer.swipeTransitionProgress = islandContainer.sideSwipeRestProgressForProgress(swipeStartProgress);
+                    }
+                    swipeMoved = false;
+                }
+            }
+
+
 
             Loader {
                 id: customSwipeLoader
@@ -2380,6 +2453,63 @@ PanelWindow {
                             heroFontFamily: root.heroFontFamily
                             presentationProgress: bluetoothConnectivityDetailShell.revealProgress
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    // [ROOT GESTURE CAPTURE]
+    MouseArea {
+        id: rootGestureArea
+        anchors.fill: parent
+        hoverEnabled: false
+        acceptedButtons: Qt.NoButton 
+        
+        property real accumulatedDelta: 0
+        property real swipeStartProgress: 0
+        property bool isSwiping: false
+        
+        onWheel: (wheel) => {
+            if (!isSwiping) {
+                isSwiping = true;
+                swipeStartProgress = islandContainer.swipeTransitionProgress;
+                accumulatedDelta = 0;
+                islandContainer.cancelSideSwipeSettle();
+            }
+
+            const dx = wheel.pixelDelta.x !== 0 ? wheel.pixelDelta.x : wheel.angleDelta.x / 4;
+            const dy = wheel.pixelDelta.y !== 0 ? wheel.pixelDelta.y : wheel.angleDelta.y / 4;
+            const effectiveDx = Math.abs(dx) > Math.abs(dy) ? dx : dy;
+            
+            // Reduced sensitivity for smoother control
+            accumulatedDelta += (effectiveDx * 0.8);
+            
+            const nextProgress = islandContainer.advanceSideSwipeProgress(swipeStartProgress, -accumulatedDelta);
+            islandContainer.swipeTransitionProgress = nextProgress;
+            mainCapsule.displayedWidth = mainCapsule.sideSwipePreviewWidth;
+            
+            swipeSettleTimer.restart();
+            wheel.accepted = false; 
+        }
+
+        Timer {
+            id: swipeSettleTimer
+            interval: 150
+            onTriggered: {
+                if (rootGestureArea.isSwiping) {
+                    rootGestureArea.isSwiping = false;
+                    const settleResult = islandContainer.resolveSideSwipeSettle(
+                        rootGestureArea.swipeStartProgress,
+                        islandContainer.swipeTransitionProgress
+                    );
+                    islandContainer.beginSideSwipeSettle(settleResult.width);
+                    
+                    switch (settleResult.action) {
+                    case "time": islandContainer.showTimeCapsule(); break;
+                    case "custom": islandContainer.showCustomCapsule(); break;
+                    case "lyrics": islandContainer.showLyricsCapsule(); break;
+                    default: islandContainer.swipeTransitionProgress = settleResult.progress;
                     }
                 }
             }

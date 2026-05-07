@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell.Bluetooth
 import Quickshell.Io
-import ConnectivityBackend
+import IslandBackend
 
 Item {
     id: controlCenter

@@ -5,25 +5,6 @@
 #include <qqml.h>
 
 void ConnectivityBackendPlugin::registerTypes(const char *uri) {
-    qmlRegisterSingletonType<BluetoothPairingAgent>(
-        uri,
-        1,
-        0,
-        "BluetoothPairingAgent",
-        [](QQmlEngine *, QJSEngine *) -> QObject * {
-            return new BluetoothPairingAgent;
-        }
-    );
-
-    qmlRegisterSingletonType<WifiController>(
-        uri,
-        1,
-        0,
-        "WifiController",
-        [](QQmlEngine *, QJSEngine *) -> QObject * {
-            return new WifiController;
-        }
-    );
-
-    qmlProtectModule(uri, 1);
+    // Types are now automatically registered via QML_ELEMENT/QML_SINGLETON in headers
+    Q_UNUSED(uri);
 }

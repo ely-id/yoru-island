@@ -5,7 +5,7 @@ import QtQuick
 QtObject {
     id: userConfig
 
-    property string wallpaperPath: "/home/dan/.config/hypr/wallpaper.png"
+    property string wallpaperPath: Quickshell.home + "/.config/hypr/wallpaper.png"
     property real workspaceOverviewWindowRadius: 12
     property string iconFontFamily: "JetBrainsMono Nerd Font"
     property string textFontFamily: "Inter Display"

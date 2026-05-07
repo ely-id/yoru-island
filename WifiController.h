@@ -14,8 +14,18 @@
 
 class IwdAgent;
 
+#include <QObject>
+#include <QString>
+#include <QStringList>
+#include <QVariant>
+#include <QAbstractListModel>
+#include <QtQml/qqml.h>
+
 class WifiController final : public QObject {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
+    QML_UNCREATABLE("Singleton")
 
     Q_PROPERTY(QString backendName READ backendName NOTIFY backendNameChanged)
     Q_PROPERTY(bool supported READ supported NOTIFY supportedChanged)

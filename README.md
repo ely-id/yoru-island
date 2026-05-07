@@ -89,12 +89,14 @@ Video: https://www.youtube.com/watch?v=vCA8sWLJjiw&list=LL&index=2
   - NetworkManager, or
   - iwd
 
-### Optional Runtime Dependencies
+## Features
 
-- `cava`
-  - Required only if you enable the `cava` left-swipe module.
-- ImageMagick (`magick` or `convert`)
-  - Used only for workspace overview wallpaper thumbnail caching.
+- **Dynamic Island**: Smoothly morphing pill that displays system info, music, and more.
+- **Gesture Navigation**: 
+  - **Touch**: Swipe left/right on the island to switch views.
+  - **Trackpad**: Use a two-finger horizontal swipe (scroll) anywhere at the top of the screen to transition between Time, Lyrics, and Custom views.
+- **Music Integration**: MPRIS support with lyrics and album art.
+- **Workspace Overview**: A beautiful workspace switcher with wallpaper previews.
 - `lyricsmpris`
   - External helper used for lyrics integration.
 - `playerctld`
@@ -104,48 +106,58 @@ Video: https://www.youtube.com/watch?v=vCA8sWLJjiw&list=LL&index=2
 
 - Any nerd font (for icon) && any font (for text) 
 
-## Getting Start
+## Installation
 
-### Download 
+### Arch Linux (Recommended)
+The easiest way to install Tide Island is via the AUR or by building the provided PKGBUILD.
+
+**Using an AUR Helper:**
 ```bash
-git clone https://github.com/enhaoswen/Dynamic-Island-on-Hyprland.git && cd Dynamic-Island-on-Hyprland
+yay -S tide-island-git
 ```
 
-> make sure you change the program if is necessary, check important things at the end.
-
-
-### Build 
-
+**Manual Installation:**
 ```bash
-cmake -S . -B build && cmake --build build -j"$(nproc)" && \
-cmake -S ./ConnectivityBackend -B ./ConnectivityBackend/build && \
-cmake --build ./ConnectivityBackend/build -j"$(nproc)" && \
-mkdir -p ~/.config/quickshell/dynamic_island/{IslandBackend,ConnectivityBackend,bin} && \
-cp ./*.qml ~/.config/quickshell/dynamic_island/ && \
-cp ./bin/* ~/.config/quickshell/dynamic_island/bin/ && \
-cp build/{libIslandBackend.so,libIslandBackendplugin.so,qmldir,IslandBackend.qmltypes} \
-~/.config/quickshell/dynamic_island/IslandBackend/ && \
-cp ./ConnectivityBackend/{libConnectivityBackendplugin.so,qmldir} \
-~/.config/quickshell/dynamic_island/ConnectivityBackend/
-
+git clone https://github.com/sai21-learn/Tide-island.git
+cd Tide-island
+makepkg -si
 ```
 
-### Clean 
+### Starting the Island
+Tide Island includes a systemd user service for automatic startup and background management.
 
+**Enable and start the service (Recommended):**
 ```bash
-cd ../.. && rm -rf Dynamic-Island-on-Hyprland
+systemctl --user enable --now tide-island
 ```
 
-#### To run in Hyprland
-```bash
-QML2_IMPORT_PATH=~/.config/quickshell/dynamic_island quickshell -p ~/.config/quickshell/dynamic_island/shell.qml
-```
-
-### To activate workspace overview
+**Hyprland Configuration (Alternative):**
+If you prefer to manage startup via your `hyprland.conf`, add this line:
 ```conf
-bind = SUPER, TAB, exec, qs ipc -p ~/.config/quickshell/dynamic_island/shell.qml call overview toggle
+exec-once = tide-island
 ```
-> It is fine to change super tab to something else
+*Note: If you have enabled the systemd service, you don't need to add anything to your hyprland.conf.*
+
+**Manage the service:**
+```bash
+# Restart the island (e.g. after config changes)
+systemctl --user restart tide-island
+
+# Stop the island
+systemctl --user stop tide-island
+
+# View logs
+journalctl --user -u tide-island -f
+```
+
+### Manual Usage
+If you prefer to run it manually:
+```bash
+tide-island
+```
+
+## Configuration
+The default configuration is located at `/usr/share/tide-island/UserConfig.qml`.
 
 ## Acknowledgments
 
@@ -166,4 +178,4 @@ bind = SUPER, TAB, exec, qs ipc -p ~/.config/quickshell/dynamic_island/shell.qml
 ## Join the community
 - Discord: https://discord.gg/gEmqgz76
 
-- Gmail: enhaoswen@gmail.com
+- Gmail: whysooraj.official@gmail.com
