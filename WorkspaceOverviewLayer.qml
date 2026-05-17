@@ -84,6 +84,10 @@ Item {
 
     property int draggingFromWorkspace: -1
     property int draggingTargetWorkspace: -1
+    property string draggingAddress: ""
+    property string settlingAddress: ""
+    property string hoveredAddress: ""
+    property string pressedAddress: ""
     property var windowToplevels: []
     property string _windowToplevelsSignature: ""
     readonly property var toplevelValues: ToplevelManager.toplevels && ToplevelManager.toplevels.values
@@ -138,6 +142,14 @@ Item {
             return -1;
 
         return workspaceGroup * workspacesShown + getWsInCell(rowIndex, columnIndex);
+    }
+
+    function workspaceOffset(workspaceId) {
+        const safeWorkspaceId = workspaceId > 0 ? workspaceId : 1;
+        return {
+            "x": (workspaceImplicitWidth + workspaceSpacing) * getWsColumn(safeWorkspaceId),
+            "y": (workspaceImplicitHeight + workspaceSpacing) * getWsRow(safeWorkspaceId)
+        };
     }
 
     function clampNumber(value, minimum, maximum) {
@@ -203,6 +215,10 @@ Item {
         windowModelRefreshTimer.stop();
         draggingFromWorkspace = -1;
         draggingTargetWorkspace = -1;
+        draggingAddress = "";
+        settlingAddress = "";
+        hoveredAddress = "";
+        pressedAddress = "";
         _windowToplevelsSignature = "";
         if (windowToplevels.length > 0)
             windowToplevels = [];
@@ -389,6 +405,59 @@ Item {
                                         anchors.fill: parent
                                         color: hoveredWhileDragging ? "#280d131a" : "#42070b10"
                                     }
+
+                                    Item {
+                                        anchors.fill: parent
+
+                                        Repeater {
+                                            model: root.windowToplevels
+
+                                            delegate: WorkspaceOverviewWindow {
+                                                id: clippedWindowTile
+
+                                                required property var modelData
+
+                                                readonly property string address: {
+                                                    const rawAddress = modelData && modelData.HyprlandToplevel
+                                                        ? String(modelData.HyprlandToplevel.address || "")
+                                                        : "";
+                                                    return rawAddress.startsWith("0x")
+                                                        ? rawAddress.toLowerCase()
+                                                        : ("0x" + rawAddress).toLowerCase();
+                                                }
+                                                readonly property var visualWindowData: root.hyprlandData && root.hyprlandData.windowByAddress
+                                                    ? root.hyprlandData.windowByAddress[address]
+                                                    : null
+                                                readonly property int workspaceId: visualWindowData && visualWindowData.workspace ? visualWindowData.workspace.id : -1
+                                                property int monitorId: visualWindowData && visualWindowData.monitor !== undefined ? visualWindowData.monitor : -1
+                                                property var sourceMonitorData: root.findMonitorData(monitorId)
+                                                property real distanceFromLeftEdge: Math.max(initX, 0)
+                                                property real distanceFromRightEdge: Math.max(root.workspaceImplicitWidth - (initX + targetWindowWidth), 0)
+                                                property real distanceFromTopEdge: Math.max(initY, 0)
+                                                property real distanceFromBottomEdge: Math.max(root.workspaceImplicitHeight - (initY + targetWindowHeight), 0)
+
+                                                visible: workspaceId === workspaceCell.workspaceValue
+                                                    && address !== root.draggingAddress
+                                                    && address !== root.settlingAddress
+                                                windowData: visualWindowData
+                                                toplevel: modelData
+                                                previewEnabled: root.previewsEnabled
+                                                scale: root.scale
+                                                monitorData: sourceMonitorData ? sourceMonitorData : root.monitorData
+                                                widgetMonitor: root.monitorData
+                                                xOffset: 0
+                                                yOffset: 0
+                                                centerIcons: root.centerIcons
+                                                hovered: root.hoveredAddress === address
+                                                pressed: root.pressedAddress === address
+                                                topLeftRadius: Math.max((workspaceCell.workspaceAtLeft && workspaceCell.workspaceAtTop ? root.largeWorkspaceRadius : root.smallWorkspaceRadius) - Math.max(distanceFromLeftEdge, distanceFromTopEdge), root.windowCornerRadius)
+                                                topRightRadius: Math.max((workspaceCell.workspaceAtRight && workspaceCell.workspaceAtTop ? root.largeWorkspaceRadius : root.smallWorkspaceRadius) - Math.max(distanceFromRightEdge, distanceFromTopEdge), root.windowCornerRadius)
+                                                bottomLeftRadius: Math.max((workspaceCell.workspaceAtLeft && workspaceCell.workspaceAtBottom ? root.largeWorkspaceRadius : root.smallWorkspaceRadius) - Math.max(distanceFromLeftEdge, distanceFromBottomEdge), root.windowCornerRadius)
+                                                bottomRightRadius: Math.max((workspaceCell.workspaceAtRight && workspaceCell.workspaceAtBottom ? root.largeWorkspaceRadius : root.smallWorkspaceRadius) - Math.max(distanceFromRightEdge, distanceFromBottomEdge), root.windowCornerRadius)
+                                                z: (visualWindowData && visualWindowData.fullscreen ? 30 : 20) + (visualWindowData && visualWindowData.floating ? 5 : 0)
+                                            }
+                                        }
+                                    }
                                 }
 
                                 MouseArea {
@@ -447,12 +516,14 @@ Item {
                         property bool workspaceAtRight: workspaceColumnIndex === root.columns - 1
                         property bool workspaceAtTop: workspaceRowIndex === 0
                         property bool workspaceAtBottom: workspaceRowIndex === root.rows - 1
+                        property bool settlingAfterDrop: false
+                        property int settleTargetWorkspace: -1
 
                         windowData: root.hyprlandData && root.hyprlandData.windowByAddress
                             ? root.hyprlandData.windowByAddress[address]
                             : null
                         toplevel: modelData
-                        previewEnabled: root.previewsEnabled
+                        previewEnabled: root.previewsEnabled && (Drag.active || settlingAfterDrop)
                         visible: workspaceId > root.workspaceGroup * root.workspacesShown
                             && workspaceId <= (root.workspaceGroup + 1) * root.workspacesShown
                         scale: root.scale
@@ -462,6 +533,7 @@ Item {
                         yOffset: workspaceOffsetY
                         centerIcons: root.centerIcons
                         draggingActive: Drag.active
+                        visibilityOpacity: Drag.active || settlingAfterDrop ? 1 : 0
                         pressed: dragArea.pressed
                         hovered: dragArea.containsMouse
                         topLeftRadius: Math.max((workspaceAtLeft && workspaceAtTop ? root.largeWorkspaceRadius : root.smallWorkspaceRadius) - Math.max(distanceFromLeftEdge, distanceFromTopEdge), root.windowCornerRadius)
@@ -482,6 +554,80 @@ Item {
                             }
                         }
 
+                        Timer {
+                            id: settleFallbackTimer
+
+                            interval: 700
+                            repeat: false
+
+                            onTriggered: {
+                                if (!windowTile.settlingAfterDrop || settleFinishTimer.running)
+                                    return;
+
+                                const offset = root.workspaceOffset(windowTile.settleTargetWorkspace);
+                                const maxX = offset.x + Math.max(0, root.workspaceImplicitWidth - windowTile.width);
+                                const maxY = offset.y + Math.max(0, root.workspaceImplicitHeight - windowTile.height);
+                                windowTile.x = Math.round(root.clampNumber(windowTile.x, offset.x, maxX));
+                                windowTile.y = Math.round(root.clampNumber(windowTile.y, offset.y, maxY));
+                                settleFinishTimer.restart();
+                            }
+                        }
+
+                        Timer {
+                            id: settleFinishTimer
+
+                            interval: 230
+                            repeat: false
+
+                            onTriggered: windowTile.finishSettle()
+                        }
+
+                        function beginSettle(targetWorkspace) {
+                            restoreTilePosition.stop();
+                            settleFallbackTimer.stop();
+                            settleFinishTimer.stop();
+                            settleTargetWorkspace = targetWorkspace;
+                            settlingAfterDrop = true;
+                            root.settlingAddress = address;
+                            settleFallbackTimer.restart();
+                        }
+
+                        function maybeSettleToCurrentInit() {
+                            if (!settlingAfterDrop || settleFinishTimer.running)
+                                return;
+                            if (workspaceId !== settleTargetWorkspace)
+                                return;
+
+                            settleFallbackTimer.stop();
+                            x = Math.round(initX);
+                            y = Math.round(initY);
+                            settleFinishTimer.restart();
+                        }
+
+                        function finishSettle() {
+                            settleFallbackTimer.stop();
+                            settleFinishTimer.stop();
+                            settlingAfterDrop = false;
+                            settleTargetWorkspace = -1;
+                            if (root.settlingAddress === address)
+                                root.settlingAddress = "";
+                            x = Math.round(initX);
+                            y = Math.round(initY);
+                        }
+
+                        function pointInsideWorkspace(localX, localY) {
+                            const pointX = x + localX;
+                            const pointY = y + localY;
+                            return pointX >= workspaceOffsetX
+                                && pointX <= workspaceOffsetX + root.workspaceImplicitWidth
+                                && pointY >= workspaceOffsetY
+                                && pointY <= workspaceOffsetY + root.workspaceImplicitHeight;
+                        }
+
+                        onWorkspaceIdChanged: maybeSettleToCurrentInit()
+                        onInitXChanged: maybeSettleToCurrentInit()
+                        onInitYChanged: maybeSettleToCurrentInit()
+
                         Drag.hotSpot.x: width / 2
                         Drag.hotSpot.y: height / 2
 
@@ -497,11 +643,20 @@ Item {
                             property bool draggingWindow: false
 
                             onPressed: (mouse) => {
+                                if (!windowTile.pointInsideWorkspace(mouse.x, mouse.y)) {
+                                    mouse.accepted = false;
+                                    return;
+                                }
+
+                                root.pressedAddress = windowTile.address;
                                 if (mouse.button !== userConfig.mouseButton(userConfig.workspaceOverviewWindowDragButton))
                                     return;
 
                                 movedWindow = false;
                                 draggingWindow = true;
+                                root.draggingAddress = windowTile.address;
+                                if (root.settlingAddress === windowTile.address)
+                                    root.settlingAddress = "";
                                 root.draggingFromWorkspace = windowTile.windowData && windowTile.windowData.workspace
                                     ? windowTile.windowData.workspace.id
                                     : -1;
@@ -512,6 +667,8 @@ Item {
                             }
 
                             onPositionChanged: {
+                                syncHover();
+
                                 if (!draggingWindow || !(pressedButtons & userConfig.mouseButton(userConfig.workspaceOverviewWindowDragButton)))
                                     return;
 
@@ -527,6 +684,8 @@ Item {
                             }
 
                             onReleased: {
+                                if (root.pressedAddress === windowTile.address)
+                                    root.pressedAddress = "";
                                 if (!draggingWindow)
                                     return;
 
@@ -539,15 +698,17 @@ Item {
                                 windowTile.Drag.active = false;
                                 root.draggingFromWorkspace = -1;
                                 root.draggingTargetWorkspace = -1;
+                                root.draggingAddress = "";
 
                                 if (targetWorkspace !== -1
                                         && windowTile.windowData
                                         && windowTile.windowData.workspace
                                         && targetWorkspace !== windowTile.windowData.workspace.id) {
+                                    windowTile.beginSettle(targetWorkspace);
                                     hyprDispatch.moveWindowToWorkspace(windowTile.address, targetWorkspace, false);
-                                    restoreTilePosition.restart();
                                 } else if (movedWindow && windowTile.windowData && windowTile.windowData.floating) {
                                     const position = root.floatingWindowPosition(windowTile);
+                                    windowTile.beginSettle(windowTile.workspaceId);
                                     hyprDispatch.moveWindowToPosition(windowTile.address, position.x, position.y, false);
                                 } else {
                                     restoreTilePosition.restart();
@@ -559,11 +720,20 @@ Item {
                                 windowTile.Drag.active = false;
                                 root.draggingFromWorkspace = -1;
                                 root.draggingTargetWorkspace = -1;
+                                if (root.draggingAddress === windowTile.address)
+                                    root.draggingAddress = "";
+                                if (root.pressedAddress === windowTile.address)
+                                    root.pressedAddress = "";
+                                restoreTilePosition.restart();
                             }
 
                             onClicked: (mouse) => {
                                 if (!windowTile.windowData)
                                     return;
+                                if (!windowTile.pointInsideWorkspace(mouse.x, mouse.y)) {
+                                    mouse.accepted = false;
+                                    return;
+                                }
                                 if (movedWindow) {
                                     movedWindow = false;
                                     return;
@@ -577,6 +747,17 @@ Item {
                                     hyprDispatch.closeWindow(windowTile.address);
                                     mouse.accepted = true;
                                 }
+                            }
+
+                            onContainsMouseChanged: {
+                                syncHover();
+                            }
+
+                            function syncHover() {
+                                if (containsMouse && windowTile.pointInsideWorkspace(mouseX, mouseY))
+                                    root.hoveredAddress = windowTile.address;
+                                else if (root.hoveredAddress === windowTile.address)
+                                    root.hoveredAddress = "";
                             }
                         }
                     }

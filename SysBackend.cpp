@@ -539,11 +539,10 @@ QString SysBackend::findLyricsBackendExecutable() const {
     const QString envPath = qEnvironmentVariable("QUICKSHELL_LYRICS_BACKEND");
     const QString pathExecutable = QStandardPaths::findExecutable("lyricsmpris");
     QStringList candidates = {
-        QStringLiteral("/usr/share/tide-island/bin/lyricsmpris"),
         envPath,
+        QStringLiteral("/usr/share/tide-island/bin/lyricsmpris"),
         quickshellConfigDir + "/bin/lyricsmpris",
         homeDir + "/.local/bin/lyricsmpris",
-        homeDir + "/.cargo/bin/lyricsmpris",
         pathExecutable
     };
 
@@ -597,22 +596,13 @@ void SysBackend::startLyricsBackend() {
         return;
     }
 
-    const QString cacheDir = QDir::homePath() + "/.cache/quickshell/lyricsmpris";
-    QDir().mkpath(cacheDir);
     m_lyricsStdoutBuffer.clear();
     setLyricsCurrentLyric("");
     setLyricsIsSynced(false);
     setLyricsBackendStatus("starting");
 
-    // playerctld is required by LyricsMPRIS-Rust for active-player selection.
-    QProcess::startDetached("playerctld", QStringList() << "daemon");
-
     m_lyricsProcess->setProgram(m_lyricsExecutablePath);
-    m_lyricsProcess->setArguments({
-        "--pipe",
-        "--database",
-        cacheDir + "/cache.db"
-    });
+    m_lyricsProcess->setArguments({ "--pipe" });
     m_lyricsProcess->start();
 }
 
@@ -632,6 +622,29 @@ void SysBackend::handleLyricsReadyRead() {
             setLyricsIsSynced(false);
             if (m_lyricsProcess->state() == QProcess::Running) setLyricsBackendStatus("running");
             continue;
+        }
+
+        QJsonParseError parseError;
+        const QJsonDocument document = QJsonDocument::fromJson(rawLine, &parseError);
+        if (parseError.error == QJsonParseError::NoError && document.isObject()) {
+            const QJsonObject object = document.object();
+            const QString type = object.value(QStringLiteral("type")).toString();
+
+            if (type == QLatin1String("status")) {
+                const QString status = object.value(QStringLiteral("status")).toString();
+                if (!status.isEmpty()) setLyricsBackendStatus(status);
+                continue;
+            }
+
+            if (type == QLatin1String("line")) {
+                const QString text = object.value(QStringLiteral("text")).toString();
+                const bool synced = object.value(QStringLiteral("synced")).toBool(false);
+                setLyricsCurrentLyric(text);
+                setLyricsIsSynced(synced && !text.isEmpty());
+                if (!text.isEmpty()) setLyricsBackendStatus(synced ? QStringLiteral("synced") : QStringLiteral("plain"));
+                else if (m_lyricsProcess->state() == QProcess::Running) setLyricsBackendStatus("running");
+                continue;
+            }
         }
 
         setLyricsCurrentLyric(lyricLine);

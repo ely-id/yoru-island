@@ -98,9 +98,8 @@ Video: https://www.youtube.com/watch?v=vCA8sWLJjiw&list=LL&index=2
 - **Music Integration**: MPRIS support with lyrics and album art.
 - **Workspace Overview**: A beautiful workspace switcher with wallpaper previews.
 - `lyricsmpris`
-  - External helper used for lyrics integration.
-- `playerctld`
-  - Improves MPRIS player discovery for lyrics/media integration.
+  - C++/Qt helper used for MPRIS lyrics integration.
+  - Looks up lyrics from multiple online providers without keeping a long-term lyrics cache.
 
 #### Assets & Scripts
 

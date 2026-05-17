@@ -20,6 +20,7 @@ Item {
     property bool hovered: false
     property bool pressed: false
     property bool draggingActive: false
+    property real visibilityOpacity: 1
     property real topLeftRadius: 18
     property real topRightRadius: 18
     property real bottomLeftRadius: 18
@@ -70,6 +71,7 @@ Item {
     readonly property string iconPath: compactMode
         ? Quickshell.iconPath(iconThemeName, "image-missing")
         : ""
+    readonly property real baseOpacity: !windowData ? 0 : (widgetMonitor && windowData.monitor === widgetMonitor.id ? 1 : 0.46)
     readonly property bool previewActive: previewEnabled && visible && opacity > 0 && !!toplevel
 
     function resolveIconThemeName(rawName) {
@@ -94,7 +96,7 @@ Item {
     y: initY
     width: targetWindowWidth
     height: targetWindowHeight
-    opacity: !windowData ? 0 : (widgetMonitor && windowData.monitor === widgetMonitor.id ? 1 : 0.46)
+    opacity: baseOpacity * visibilityOpacity
 
     Behavior on x {
         enabled: !root.draggingActive
