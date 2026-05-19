@@ -8,24 +8,16 @@
 namespace lyricsmpris {
 namespace {
 
-constexpr double kTitleSimilarityThreshold = 0.72;
 constexpr double kArtistSimilarityThreshold = 0.60;
 constexpr int kAcceptedScore = 72;
 constexpr int kAcceptedPlainScore = 68;
 constexpr int kHighConfidenceScore = 92;
-
-enum VersionFlag {
-    VersionLive = 1 << 0,
-    VersionCover = 1 << 1,
-    VersionInstrumental = 1 << 2,
-    VersionRemix = 1 << 3,
-    VersionSpeed = 1 << 4
-};
+constexpr double kStrictTitleSimilarityThreshold = 0.90;
 
 QString stringValue(const QJsonObject &object, const QString &key) {
     const QJsonValue value = object.value(key);
     if (value.isString()) return value.toString();
-    if (value.isDouble()) return QString::number(value.toInt());
+    if (value.isDouble()) return QString::number(static_cast<qint64>(value.toDouble()));
     return QString();
 }
 
@@ -57,26 +49,8 @@ QString firstNonEmpty(const QStringList &values) {
     return QString();
 }
 
-QString normalizeCjkVariants(QString value) {
-    const QString traditional = QStringLiteral("氣傑倫鄧劉風後來闊聽裡裏愛詞編讓難貴葉營擁親輕說願戀記飄夢攪謝準備嗎嚐錯誰飛鋼純樂現場與對這個為萬無聲體會妳臺灣國語簡髮長過開關點畫麥麵黃");
-    const QString simplified = QStringLiteral("气杰伦邓刘风后来阔听里里爱词编让难贵叶营拥亲轻说愿恋记飘梦搅谢准备吗尝错谁飞钢纯乐现场与对这个为万无声体会你台湾国语简发长过开关点画麦面黄");
-
-    for (QChar &character : value) {
-        const qsizetype index = traditional.indexOf(character);
-        if (index >= 0 && index < simplified.size()) character = simplified.at(index);
-    }
-    return value;
-}
-
-bool containsAny(const QString &value, const QStringList &needles) {
-    for (const QString &needle : needles) {
-        if (!needle.isEmpty() && value.contains(needle)) return true;
-    }
-    return false;
-}
-
 bool isPlaceholderLyricText(QString text) {
-    text = normalizeCjkVariants(text.toLower());
+    text = text.toLower();
     text.remove(QRegularExpression(QStringLiteral(R"(\s+)")));
     return text == QStringLiteral("暂无歌词")
         || text == QStringLiteral("暂无")
@@ -173,61 +147,37 @@ bool unitsContainAll(const QString &needle, const QString &haystack, bool titleM
     return true;
 }
 
-bool sameComparableScript(const QString &left, const QString &right) {
-    const QString normalizedLeft = normalizeCjkVariants(left.toLower());
-    const QString normalizedRight = normalizeCjkVariants(right.toLower());
-    return (hasCjk(normalizedLeft) && hasCjk(normalizedRight))
-        || (hasLatin(normalizedLeft) && hasLatin(normalizedRight));
+bool isShortLatinArtistAlias(const QString &artist) {
+    const QStringList units = comparisonUnits(normalizedArtist(artist));
+    if (units.size() != 1) return false;
+    const QString unit = units.first();
+    if (unit.size() > 4) return false;
+    for (QChar character : unit) {
+        if (character.script() != QChar::Script_Latin) return false;
+    }
+    return true;
 }
 
-int versionFlagsFor(QString value) {
-    value = normalizeCjkVariants(value.toLower());
+bool artistContainsShortLatinAlias(const QString &alias, const QString &artist) {
+    const QStringList aliasUnits = comparisonUnits(normalizedArtist(alias));
+    if (aliasUnits.size() != 1) return false;
 
-    int flags = 0;
-    if (value.contains(QRegularExpression(QStringLiteral(R"(\blive\b)")))
-        || containsAny(value, {
-            QStringLiteral("演唱会"),
-            QStringLiteral("现场"),
-            QStringLiteral("巡回"),
-            QStringLiteral("concert")
-        })) {
-        flags |= VersionLive;
+    const QString aliasUnit = aliasUnits.first();
+    if (comparisonUnits(normalizedArtist(artist)).contains(aliasUnit)) return true;
+
+    QString compactArtist;
+    for (QChar character : normalizedArtist(artist)) {
+        if (character.script() == QChar::Script_Latin || character.isDigit())
+            compactArtist.append(character);
     }
-    if (value.contains(QRegularExpression(QStringLiteral(R"(\bcover\b)")))
-        || containsAny(value, {
-            QStringLiteral("翻唱"),
-            QStringLiteral("原唱")
-        })) {
-        flags |= VersionCover;
-    }
-    if (containsAny(value, {
-            QStringLiteral("instrumental"),
-            QStringLiteral("伴奏"),
-            QStringLiteral("纯音乐"),
-            QStringLiteral("钢琴"),
-            QStringLiteral("piano"),
-            QStringLiteral("karaoke")
-        })) {
-        flags |= VersionInstrumental;
-    }
-    if (value.contains(QRegularExpression(QStringLiteral(R"(\bremix\b)")))
-        || containsAny(value, {
-            QStringLiteral("dj版"),
-            QStringLiteral("dj 版"),
-            QStringLiteral("混音")
-        })) {
-        flags |= VersionRemix;
-    }
-    if (containsAny(value, {
-            QStringLiteral("加速"),
-            QStringLiteral("降速"),
-            QStringLiteral("变速"),
-            QStringLiteral("sped up"),
-            QStringLiteral("slowed")
-        })) {
-        flags |= VersionSpeed;
-    }
-    return flags;
+    return !compactArtist.isEmpty() && compactArtist.contains(aliasUnit);
+}
+
+bool sameComparableScript(const QString &left, const QString &right) {
+    const QString normalizedLeft = left.toLower();
+    const QString normalizedRight = right.toLower();
+    return (hasCjk(normalizedLeft) && hasCjk(normalizedRight))
+        || (hasLatin(normalizedLeft) && hasLatin(normalizedRight));
 }
 
 QString lyricTextForMetadata(const ProviderCandidate &candidate) {
@@ -306,29 +256,18 @@ QString normalizeCommon(QString value, bool titleMode) {
     if (titleMode)
         value.remove(QRegularExpression(QStringLiteral(R"(^\s*\d{1,3}\s*[\.\-_\)]\s*)")));
 
-    const QRegularExpression noisyBrackets(
-        QStringLiteral(R"((\(|\[|\{)[^\)\]\}]*\b(feat|ft\.?|featuring|with|remaster(?:ed)?|live|mono|stereo|explicit|clean|radio|edit|version|official|audio|video|lyrics?|mv|hd)\b[^\)\]\}]*(\)|\]|\}))"),
+    const QRegularExpression featuringBrackets(
+        QStringLiteral(R"((\(|\[|\{)[^\)\]\}]*\b(feat|ft\.?|featuring)\b[^\)\]\}]*(\)|\]|\}))"),
         QRegularExpression::CaseInsensitiveOption);
-    value.remove(noisyBrackets);
-    const QRegularExpression localizedNoisyBrackets(
-        QStringLiteral(R"([（【［\[][^）】\]\[]*(?:cover|live|remix|伴奏|钢琴|鋼琴|纯音乐|純音樂|翻唱|原唱|加速|降速|混音|现场|現場|演唱会|演唱會|版)[^）】\]\[]*[）】\]\]])"),
-        QRegularExpression::CaseInsensitiveOption);
-    value.remove(localizedNoisyBrackets);
-
-    if (titleMode) {
-        const QRegularExpression suffixNoise(
-            QStringLiteral(R"(\s+-\s+.*\b(remaster(?:ed)?|live|radio|edit|version|official|audio|video|lyrics?|mv|hd)\b.*$)"),
-            QRegularExpression::CaseInsensitiveOption);
-        value.remove(suffixNoise);
-    }
+    value.remove(featuringBrackets);
 
     const QRegularExpression featuring(
-        QStringLiteral(R"(\b(feat\.?|featuring|ft\.?|with)\b.*$)"),
+        QStringLiteral(R"(\b(feat\.?|featuring|ft\.?)\b.*$)"),
         QRegularExpression::CaseInsensitiveOption);
     value.remove(featuring);
     value.replace(QRegularExpression(QStringLiteral(R"([^\p{L}\p{N}]+)")), QStringLiteral(" "));
     value.replace(QRegularExpression(QStringLiteral(R"(\s+)")), QStringLiteral(" "));
-    return normalizeCjkVariants(value).trimmed();
+    return value.trimmed();
 }
 
 QString jsonLyricValue(const QJsonObject &object) {
@@ -516,20 +455,11 @@ CandidateEvaluation evaluateCandidate(const TrackQuery &query, const ProviderCan
         return evaluation;
     }
 
-    const int queryVersionFlags = versionFlagsFor(query.title + QLatin1Char(' ') + query.album);
-    int candidateVersionFlags = versionFlagsFor(candidate.title + QLatin1Char(' ') + candidate.album);
-    if (candidate.instrumental) candidateVersionFlags |= VersionInstrumental;
-    const int unexpectedVersionFlags = candidateVersionFlags & ~queryVersionFlags;
-    if (unexpectedVersionFlags != 0) {
-        evaluation.reason = QStringLiteral("version_mismatch");
-        return evaluation;
-    }
-
     double bestTitleSimilarity = 0.0;
     bool hasTitleEvidence = false;
     if (candidate.metadataTrusted && !candidate.title.trimmed().isEmpty()) {
         const double similarity = unitSimilarity(query.title, candidate.title, true);
-        if (similarity < kTitleSimilarityThreshold) {
+        if (similarity < kStrictTitleSimilarityThreshold) {
             evaluation.reason = QStringLiteral("title_mismatch");
             return evaluation;
         }
@@ -538,7 +468,7 @@ CandidateEvaluation evaluateCandidate(const TrackQuery &query, const ProviderCan
     }
     if (!evaluation.lyricMetadata.title.trimmed().isEmpty()) {
         const double similarity = unitSimilarity(query.title, evaluation.lyricMetadata.title, true);
-        if (similarity < kTitleSimilarityThreshold) {
+        if (similarity < kStrictTitleSimilarityThreshold) {
             evaluation.reason = QStringLiteral("lyric_title_mismatch");
             return evaluation;
         }
@@ -555,10 +485,15 @@ CandidateEvaluation evaluateCandidate(const TrackQuery &query, const ProviderCan
     double bestArtistSimilarity = 0.0;
     bool hasArtistEvidence = false;
     if (!query.artist.trimmed().isEmpty()) {
+        const bool queryIsShortLatinAlias = isShortLatinArtistAlias(query.artist);
+        bool shortLatinAliasSeen = false;
         if (candidate.metadataTrusted && !candidate.artist.trimmed().isEmpty()) {
             double similarity = unitSimilarity(query.artist, candidate.artist, false);
             const bool listedArtist = unitsContainAll(query.artist, candidate.artist, false);
-            if (similarity < kArtistSimilarityThreshold && !listedArtist && sameComparableScript(query.artist, candidate.artist)) {
+            shortLatinAliasSeen = shortLatinAliasSeen || artistContainsShortLatinAlias(query.artist, candidate.artist);
+            if (similarity < kArtistSimilarityThreshold
+                && !listedArtist
+                && (sameComparableScript(query.artist, candidate.artist) || queryIsShortLatinAlias)) {
                 evaluation.reason = QStringLiteral("artist_mismatch");
                 return evaluation;
             }
@@ -569,13 +504,20 @@ CandidateEvaluation evaluateCandidate(const TrackQuery &query, const ProviderCan
         if (!evaluation.lyricMetadata.artist.trimmed().isEmpty()) {
             double similarity = unitSimilarity(query.artist, evaluation.lyricMetadata.artist, false);
             const bool listedArtist = unitsContainAll(query.artist, evaluation.lyricMetadata.artist, false);
-            if (similarity < kArtistSimilarityThreshold && !listedArtist && sameComparableScript(query.artist, evaluation.lyricMetadata.artist)) {
+            shortLatinAliasSeen = shortLatinAliasSeen || artistContainsShortLatinAlias(query.artist, evaluation.lyricMetadata.artist);
+            if (similarity < kArtistSimilarityThreshold
+                && !listedArtist
+                && (sameComparableScript(query.artist, evaluation.lyricMetadata.artist) || queryIsShortLatinAlias)) {
                 evaluation.reason = QStringLiteral("lyric_artist_mismatch");
                 return evaluation;
             }
             if (listedArtist) similarity = std::max(similarity, 0.92);
             bestArtistSimilarity = std::max(bestArtistSimilarity, similarity);
             hasArtistEvidence = true;
+        }
+        if (queryIsShortLatinAlias && !shortLatinAliasSeen) {
+            evaluation.reason = QStringLiteral("missing_artist_alias");
+            return evaluation;
         }
     }
 
@@ -594,8 +536,7 @@ CandidateEvaluation evaluateCandidate(const TrackQuery &query, const ProviderCan
     if (query.durationMs > 0) {
         if (candidate.durationMs > 0) {
             const int delta = std::abs(query.durationMs - candidate.durationMs);
-            const bool versioned = (queryVersionFlags | candidateVersionFlags) != 0;
-            const int tolerance = std::max(versioned ? 30000 : 15000, int(query.durationMs * (versioned ? 0.15 : 0.08)));
+            const int tolerance = std::max(15000, int(query.durationMs * 0.08));
             if (delta > tolerance) {
                 evaluation.reason = QStringLiteral("duration_mismatch");
                 return evaluation;
@@ -811,6 +752,17 @@ ProviderCandidate parseKugouDownloadJson(const QByteArray &payload) {
     const QString content = stringValue(document.object(), QStringLiteral("content"));
     const QByteArray decoded = QByteArray::fromBase64(content.toUtf8());
     candidate.syncedLyrics = decoded.isEmpty() ? content : QString::fromUtf8(decoded);
+    return candidate;
+}
+
+ProviderCandidate parseLyricsOvhJson(const QByteArray &payload) {
+    ProviderCandidate candidate;
+    candidate.provider = QStringLiteral("lyricsovh");
+    QJsonParseError error;
+    const QJsonDocument document = QJsonDocument::fromJson(payload, &error);
+    if (error.error != QJsonParseError::NoError || !document.isObject()) return candidate;
+
+    candidate.plainLyrics = stringValue(document.object(), QStringLiteral("lyrics"));
     return candidate;
 }
 

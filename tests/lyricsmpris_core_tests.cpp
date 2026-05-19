@@ -16,7 +16,7 @@ private slots:
     void scoresLikelyMatches();
     void acceptsChineseAndAliasMatches();
     void acceptsListedCollaborators();
-    void rejectsWrongVersionsAndDurations();
+    void matchesVersionsByTitleAndDuration();
     void rejectsConflictingLyricMetadata();
     void requiresTrustedOrLyricMetadata();
     void acceptsMusixmatchWithRequestMetadata();
@@ -59,14 +59,18 @@ void LyricsMprisCoreTests::filtersPlaceholderLyrics() {
 }
 
 void LyricsMprisCoreTests::normalizesNoisyTitles() {
-    QCOMPARE(normalizedTitle("Song Title (feat. Someone) - Remastered 2011"), QString("song title"));
-    QCOMPARE(normalizedTitle("HELLO!!! [Official Lyric Video]"), QString("hello"));
+    QCOMPARE(normalizedTitle("Song Title (feat. Someone) - Remastered 2011"), QString("song title remastered 2011"));
+    QCOMPARE(normalizedTitle("HELLO!!! [Official Lyric Video]"), QString("hello official lyric video"));
+    QCOMPARE(normalizedTitle("擱淺"), QString("擱淺"));
+    QCOMPARE(normalizedTitle("你愛我的樣子"), QString("你愛我的樣子"));
+    QCOMPARE(normalizedTitle("不習慣說再見"), QString("不習慣說再見"));
+    QCOMPARE(normalizedTitle("到底要怎麼做你才懂"), QString("到底要怎麼做你才懂"));
     QCOMPARE(normalizedArtist("Artist feat. Guest"), QString("artist"));
 }
 
 void LyricsMprisCoreTests::scoresLikelyMatches() {
     TrackQuery query;
-    query.title = "Song Title (Remastered)";
+    query.title = "Song Title";
     query.artist = "Main Artist";
     query.album = "Album";
     query.durationMs = 180000;
@@ -94,10 +98,10 @@ void LyricsMprisCoreTests::acceptsChineseAndAliasMatches() {
     chinese.durationMs = 215000;
 
     ProviderCandidate candidate;
-    candidate.title = "告白氣球";
-    candidate.artist = "周傑倫 (Jay Chou)";
+    candidate.title = "告白气球";
+    candidate.artist = "周杰伦 (Jay Chou)";
     candidate.durationMs = 209000;
-    candidate.syncedLyrics = "[ti:告白氣球]\n[ar:周傑倫]\n[00:01.00]塞納河畔";
+    candidate.syncedLyrics = "[ti:告白气球]\n[ar:周杰伦]\n[00:01.00]塞纳河畔";
 
     const CandidateEvaluation chineseEvaluation = evaluateCandidate(chinese, candidate);
     QVERIFY2(chineseEvaluation.accepted, qPrintable(chineseEvaluation.reason));
@@ -110,13 +114,41 @@ void LyricsMprisCoreTests::acceptsChineseAndAliasMatches() {
 
     ProviderCandidate aliasCandidate;
     aliasCandidate.title = "光年之外";
-    aliasCandidate.artist = "G E M 鄧紫棋";
+    aliasCandidate.artist = "G E M 邓紫棋";
     aliasCandidate.durationMs = 235500;
-    aliasCandidate.syncedLyrics = "[ti:光年之外]\n[ar:G.E.M. 鄧紫棋]\n[00:01.00]感受停在我发端的指尖";
+    aliasCandidate.syncedLyrics = "[ti:光年之外]\n[ar:G.E.M. 邓紫棋]\n[00:01.00]感受停在我发端的指尖";
 
     const CandidateEvaluation aliasEvaluation = evaluateCandidate(englishAlias, aliasCandidate);
     QVERIFY2(aliasEvaluation.accepted, qPrintable(aliasEvaluation.reason));
     QVERIFY(aliasEvaluation.highConfidence);
+
+    TrackQuery traditionalTitle;
+    traditionalTitle.title = "擱淺";
+    traditionalTitle.artist = "BK";
+    traditionalTitle.durationMs = 214738;
+
+    ProviderCandidate traditionalCandidate;
+    traditionalCandidate.title = "擱淺";
+    traditionalCandidate.artist = "BK";
+    traditionalCandidate.album = "情·擱";
+    traditionalCandidate.durationMs = 214738;
+    traditionalCandidate.syncedLyrics = "[00:01.00]Hey";
+
+    const CandidateEvaluation traditionalEvaluation = evaluateCandidate(traditionalTitle, traditionalCandidate);
+    QVERIFY2(traditionalEvaluation.accepted, qPrintable(traditionalEvaluation.reason));
+    QVERIFY(traditionalEvaluation.highConfidence);
+
+    ProviderCandidate simplifiedCandidate = traditionalCandidate;
+    simplifiedCandidate.title = "搁浅";
+    QCOMPARE(evaluateCandidate(traditionalTitle, simplifiedCandidate).reason, QString("title_mismatch"));
+
+    ProviderCandidate missingShortAliasArtist = traditionalCandidate;
+    missingShortAliasArtist.artist.clear();
+    QCOMPARE(evaluateCandidate(traditionalTitle, missingShortAliasArtist).reason, QString("missing_artist_alias"));
+
+    ProviderCandidate wrongShortAliasArtist = traditionalCandidate;
+    wrongShortAliasArtist.artist = "最棒的外勾外";
+    QCOMPARE(evaluateCandidate(traditionalTitle, wrongShortAliasArtist).reason, QString("artist_mismatch"));
 }
 
 void LyricsMprisCoreTests::acceptsListedCollaborators() {
@@ -126,7 +158,7 @@ void LyricsMprisCoreTests::acceptsListedCollaborators() {
     query.durationMs = 179000;
 
     ProviderCandidate collaboration;
-    collaboration.title = "你知道你比晚霞好看嗎 - Better than Sunset";
+    collaboration.title = "你知道你比晚霞好看吗";
     collaboration.artist = "Tr33, BK, & Seluu";
     collaboration.durationMs = 179000;
     collaboration.syncedLyrics = "[00:01.00]Hey";
@@ -140,7 +172,7 @@ void LyricsMprisCoreTests::acceptsListedCollaborators() {
     QCOMPARE(evaluateCandidate(query, unrelated).reason, QString("title_mismatch"));
 }
 
-void LyricsMprisCoreTests::rejectsWrongVersionsAndDurations() {
+void LyricsMprisCoreTests::matchesVersionsByTitleAndDuration() {
     TrackQuery query;
     query.title = "告白气球";
     query.artist = "周杰伦";
@@ -161,19 +193,20 @@ void LyricsMprisCoreTests::rejectsWrongVersionsAndDurations() {
 
     ProviderCandidate cover = shortClip;
     cover.title = "告白气球 (Cover)";
-    cover.artist = "Xai小爱";
     cover.durationMs = 215000;
-    QCOMPARE(evaluateCandidate(query, cover).reason, QString("version_mismatch"));
+    QCOMPARE(evaluateCandidate(query, cover).reason, QString("title_mismatch"));
 
-    ProviderCandidate piano = shortClip;
-    piano.title = "告白气球 (钢琴版) [原唱: 周杰伦]";
-    piano.durationMs = 215000;
-    QCOMPARE(evaluateCandidate(query, piano).reason, QString("version_mismatch"));
+    TrackQuery remixQuery = query;
+    remixQuery.title = "告白气球 Remix";
+    ProviderCandidate remix = shortClip;
+    remix.title = "告白气球 Remix";
+    remix.durationMs = 215000;
+    const CandidateEvaluation remixEvaluation = evaluateCandidate(remixQuery, remix);
+    QVERIFY2(remixEvaluation.accepted, qPrintable(remixEvaluation.reason));
 
-    ProviderCandidate live = shortClip;
-    live.title = "告白气球 (Live)";
-    live.durationMs = 264000;
-    QCOMPARE(evaluateCandidate(query, live).reason, QString("version_mismatch"));
+    ProviderCandidate original = remix;
+    original.title = "告白气球";
+    QCOMPARE(evaluateCandidate(remixQuery, original).reason, QString("title_mismatch"));
 }
 
 void LyricsMprisCoreTests::rejectsConflictingLyricMetadata() {
@@ -262,6 +295,21 @@ void LyricsMprisCoreTests::parsesNeteaseSearchShapes() {
     QCOMPARE(modernCandidates.first().durationMs, 215000);
     QCOMPARE(modernCandidates.first().syncedLyrics, QString("12345"));
 
+    const QByteArray largeId = R"({
+        "result": {
+            "songs": [{
+                "name": "搁浅",
+                "id": 2759476336,
+                "artists": [{"name": "BK"}],
+                "album": {"name": "情·搁"},
+                "duration": 214738
+            }]
+        }
+    })";
+    QList<ProviderCandidate> largeIdCandidates = parseNeteaseSearchJson(largeId);
+    QCOMPARE(largeIdCandidates.size(), 1);
+    QCOMPARE(largeIdCandidates.first().syncedLyrics, QString("2759476336"));
+
     const QByteArray encrypted = R"({"result":"35b1748964af8a7c","code":200})";
     QVERIFY(parseNeteaseSearchJson(encrypted).isEmpty());
 }
@@ -284,6 +332,11 @@ void LyricsMprisCoreTests::parsesProviderFixtures() {
     const QByteArray kugou = R"({"content":"WzAwOjAxLjAwXUhvbGE="})";
     ProviderCandidate kugouLyric = parseKugouDownloadJson(kugou);
     QVERIFY(documentFromCandidate(kugouLyric).hasSyncedLines());
+
+    const QByteArray lyricsOvh = R"({"lyrics":"Line one\nLine two"})";
+    ProviderCandidate lyricsOvhLyric = parseLyricsOvhJson(lyricsOvh);
+    QCOMPARE(lyricsOvhLyric.provider, QString("lyricsovh"));
+    QCOMPARE(documentFromCandidate(lyricsOvhLyric).plainLines.size(), 2);
 }
 
 void LyricsMprisCoreTests::releasesDocumentStorage() {

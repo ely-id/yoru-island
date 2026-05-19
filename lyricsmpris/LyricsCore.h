@@ -82,6 +82,7 @@ ProviderCandidate parseQqLyricJson(const QByteArray &payload);
 QList<ProviderCandidate> parseKugouSongSearchJson(const QByteArray &payload);
 QList<QJsonObject> parseKugouLyricSearchJson(const QByteArray &payload);
 ProviderCandidate parseKugouDownloadJson(const QByteArray &payload);
+ProviderCandidate parseLyricsOvhJson(const QByteArray &payload);
 QList<ProviderCandidate> parseMusixmatchJson(const QByteArray &payload, const QString &provider);
 
 } // namespace lyricsmpris

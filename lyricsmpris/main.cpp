@@ -24,7 +24,7 @@ QStringList splitCommaList(const QString &value) {
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("lyricsmpris"));
-    QCoreApplication::setApplicationVersion(QStringLiteral("2.1.0-cpp"));
+    QCoreApplication::setApplicationVersion(QStringLiteral("2.2.0-cpp"));
 
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Lightweight MPRIS lyrics helper for Tide Island"));
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     parser.process(app);
 
     if (parser.isSet(listProvidersOption)) {
-        QTextStream(stdout) << "lrclib,lrcx,netease,qq,kugou,musixmatch\n";
+        QTextStream(stdout) << supportedLyricProviders().join(QLatin1Char(',')) << Qt::endl;
         return 0;
     }
 

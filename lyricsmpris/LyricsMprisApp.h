@@ -1,16 +1,15 @@
 #pragma once
 
 #include "LyricsCore.h"
+#include "LyricsLookupEngine.h"
 
 #include <QDateTime>
 #include <QHash>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
 #include <QObject>
 #include <QSet>
 #include <QStringList>
 #include <QTimer>
-#include <QUrl>
+#include <QVariant>
 
 namespace lyricsmpris {
 
@@ -40,8 +39,8 @@ private slots:
     void handleNameOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner);
     void handlePropertiesChanged(const QString &interfaceName, const QVariantMap &changedProperties, const QStringList &invalidatedProperties);
     void updatePosition();
-    void startFallbackProviders();
-    void handleNetworkFinished();
+    void handleLookupDocument(LyricDocument document, const QString &status, bool finalSynced);
+    void handleLookupNotFound();
 
 private:
     struct PlayerInfo {
@@ -63,7 +62,6 @@ private:
     void emitLine(const QString &line, bool synced);
     void clearCurrentTrack();
     void releaseCurrentDocument();
-    void abortNetwork();
     void startLookup();
     void chooseActivePlayer();
     void updatePlayer(const QString &service);
@@ -72,24 +70,8 @@ private:
     TrackQuery queryFor(const PlayerInfo &player) const;
     void tryInlineLyrics(const PlayerInfo &player, bool *hasSyncedDocument);
     void tryLocalLyrics(const PlayerInfo &player, bool *hasSyncedDocument);
-    void startRemoteProviders();
-    void startProvider(const QString &provider);
-    void startLrclib();
-    void startLrcx();
-    void startNetease();
-    void startQq();
-    void startKugou();
-    void startMusixmatch();
-    QNetworkReply *get(const QUrl &url, const QString &provider, const QString &stage);
-    void copyCandidateMetadata(QNetworkReply *reply, const ProviderCandidate &candidate);
-    ProviderCandidate candidateFromReply(QNetworkReply *reply, ProviderCandidate candidate) const;
-    void considerCandidate(ProviderCandidate candidate);
     void acceptDocument(LyricDocument document, const QString &status, bool finalSynced);
-    void maybeFinishSearch();
-    void rememberSyncedCandidate(LyricDocument document, int score);
-    void rememberPlainCandidate(ProviderCandidate candidate, int score);
     void maybeQuitLookup();
-    void debugCandidate(const ProviderCandidate &candidate, const CandidateEvaluation &evaluation, const QString &action) const;
     bool serviceBlocked(const QString &service) const;
     static QVariant unwrapDbusVariant(const QVariant &value);
     static QString variantToString(const QVariant &value);
@@ -97,28 +79,18 @@ private:
     static qint64 variantToLongLong(const QVariant &value);
 
     AppOptions m_options;
-    QNetworkAccessManager m_network;
+    LyricsLookupEngine m_lookup;
     QTimer m_refreshTimer;
     QTimer m_positionTimer;
-    QTimer m_fallbackTimer;
     QHash<QString, PlayerInfo> m_players;
     QString m_activeService;
     QString m_currentTrackKey;
     PlayerInfo m_currentPlayer;
     LyricDocument m_currentDocument;
-    LyricDocument m_bestSyncedDocument;
-    ProviderCandidate m_bestPlainCandidate;
-    int m_bestSyncedScore = 0;
-    int m_bestPlainScore = 0;
-    int m_generation = 0;
-    int m_pendingReplies = 0;
-    bool m_fallbackStarted = false;
     bool m_hasAcceptedDocument = false;
     QString m_lastStatus;
     QString m_lastLine;
     bool m_lastLineSynced = false;
-    QList<QNetworkReply *> m_replies;
-    QSet<QString> m_startedProviders;
 };
 
 } // namespace lyricsmpris

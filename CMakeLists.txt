@@ -15,6 +15,8 @@ add_executable(lyricsmpris
     lyricsmpris/main.cpp
     lyricsmpris/LyricsCore.h
     lyricsmpris/LyricsCore.cpp
+    lyricsmpris/LyricsLookupEngine.h
+    lyricsmpris/LyricsLookupEngine.cpp
     lyricsmpris/LyricsMprisApp.h
     lyricsmpris/LyricsMprisApp.cpp
 )
