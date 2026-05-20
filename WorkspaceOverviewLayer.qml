@@ -89,6 +89,7 @@ Item {
     property string hoveredAddress: ""
     property string pressedAddress: ""
     property var windowToplevels: []
+    property var windowMoveHints: ({})
     property string _windowToplevelsSignature: ""
     readonly property var toplevelValues: ToplevelManager.toplevels && ToplevelManager.toplevels.values
         ? ToplevelManager.toplevels.values
@@ -174,7 +175,7 @@ Item {
         return (monitorData.transform & 1) ? monitorData.width : monitorData.height;
     }
 
-    function floatingWindowPosition(windowTile) {
+    function floatingWindowPosition(windowTile, targetWorkspace) {
         const sourceMonitor = windowTile && windowTile.sourceMonitorData
             ? windowTile.sourceMonitorData
             : monitorData;
@@ -189,8 +190,14 @@ Item {
         const usableHeight = Math.max(1, transformedMonitorHeight(sourceMonitor) - reserved[1] - reserved[3]);
         const scaleX = Math.max(0.0001, windowTile.scale * windowTile.widthRatio);
         const scaleY = Math.max(0.0001, windowTile.scale * windowTile.heightRatio);
-        const localX = (windowTile.x - windowTile.workspaceOffsetX) / scaleX;
-        const localY = (windowTile.y - windowTile.workspaceOffsetY) / scaleY;
+        const targetOffset = targetWorkspace > 0
+            ? workspaceOffset(targetWorkspace)
+            : {
+                "x": windowTile.workspaceOffsetX,
+                "y": windowTile.workspaceOffsetY
+            };
+        const localX = (windowTile.x - targetOffset.x) / scaleX;
+        const localY = (windowTile.y - targetOffset.y) / scaleY;
         const windowWidth = windowTile.windowData && windowTile.windowData.size ? windowTile.windowData.size[0] : 0;
         const windowHeight = windowTile.windowData && windowTile.windowData.size ? windowTile.windowData.size[1] : 0;
         const maxX = usableX + Math.max(0, usableWidth - windowWidth);
@@ -200,6 +207,67 @@ Item {
             "x": Math.round(clampNumber(usableX + localX, usableX, maxX)),
             "y": Math.round(clampNumber(usableY + localY, usableY, maxY))
         };
+    }
+
+    function windowMoveHint(address) {
+        const key = String(address || "").toLowerCase();
+        return windowMoveHints && windowMoveHints[key] ? windowMoveHints[key] : null;
+    }
+
+    function setWindowMoveHint(address, workspaceId, x, y) {
+        const key = String(address || "").toLowerCase();
+        if (key === "")
+            return;
+
+        const nextHints = {};
+        for (const existingKey in windowMoveHints)
+            nextHints[existingKey] = windowMoveHints[existingKey];
+
+        const hint = {};
+        if (workspaceId > 0)
+            hint.workspace = workspaceId;
+        if (x !== undefined && y !== undefined) {
+            hint.x = Math.round(x);
+            hint.y = Math.round(y);
+        }
+
+        nextHints[key] = hint;
+        windowMoveHints = nextHints;
+    }
+
+    function clearMatchedWindowMoveHints() {
+        const hints = windowMoveHints ? windowMoveHints : {};
+        const byAddress = hyprlandData && hyprlandData.windowByAddress
+            ? hyprlandData.windowByAddress
+            : {};
+        const nextHints = {};
+        let changed = false;
+
+        for (const key in hints) {
+            const hint = hints[key];
+            const windowData = byAddress[key] || null;
+            if (!windowData) {
+                nextHints[key] = hint;
+                continue;
+            }
+
+            const workspaceMatches = hint.workspace === undefined
+                || (windowData.workspace && windowData.workspace.id === hint.workspace);
+            const positionMatches = hint.x === undefined
+                || (windowData.at
+                    && Math.abs(windowData.at[0] - hint.x) <= 1
+                    && Math.abs(windowData.at[1] - hint.y) <= 1);
+
+            if (workspaceMatches && positionMatches) {
+                changed = true;
+                continue;
+            }
+
+            nextHints[key] = hint;
+        }
+
+        if (changed)
+            windowMoveHints = nextHints;
     }
 
     function normalizeToplevelAddress(toplevel) {
@@ -219,6 +287,7 @@ Item {
         settlingAddress = "";
         hoveredAddress = "";
         pressedAddress = "";
+        windowMoveHints = ({});
         _windowToplevelsSignature = "";
         if (windowToplevels.length > 0)
             windowToplevels = [];
@@ -288,6 +357,7 @@ Item {
         target: root.hyprlandData
 
         function onWindowByAddressChanged() {
+            root.clearMatchedWindowMoveHints();
             root.scheduleWindowToplevelRefresh();
         }
     }
@@ -428,7 +498,13 @@ Item {
                                                 readonly property var visualWindowData: root.hyprlandData && root.hyprlandData.windowByAddress
                                                     ? root.hyprlandData.windowByAddress[address]
                                                     : null
-                                                readonly property int workspaceId: visualWindowData && visualWindowData.workspace ? visualWindowData.workspace.id : -1
+                                                readonly property var moveHint: root.windowMoveHint(address)
+                                                readonly property int workspaceId: moveHint && moveHint.workspace !== undefined
+                                                    ? moveHint.workspace
+                                                    : (visualWindowData && visualWindowData.workspace ? visualWindowData.workspace.id : -1)
+                                                readonly property var positionHint: moveHint && moveHint.x !== undefined && moveHint.y !== undefined
+                                                    ? moveHint
+                                                    : null
                                                 property int monitorId: visualWindowData && visualWindowData.monitor !== undefined ? visualWindowData.monitor : -1
                                                 property var sourceMonitorData: root.findMonitorData(monitorId)
                                                 property real distanceFromLeftEdge: Math.max(initX, 0)
@@ -437,17 +513,19 @@ Item {
                                                 property real distanceFromBottomEdge: Math.max(root.workspaceImplicitHeight - (initY + targetWindowHeight), 0)
 
                                                 visible: workspaceId === workspaceCell.workspaceValue
-                                                    && address !== root.draggingAddress
-                                                    && address !== root.settlingAddress
                                                 windowData: visualWindowData
                                                 toplevel: modelData
                                                 previewEnabled: root.previewsEnabled
+                                                forcePreviewActive: root.previewsEnabled
+                                                    && (address === root.draggingAddress || address === root.settlingAddress)
+                                                positionOverride: positionHint
                                                 scale: root.scale
                                                 monitorData: sourceMonitorData ? sourceMonitorData : root.monitorData
                                                 widgetMonitor: root.monitorData
                                                 xOffset: 0
                                                 yOffset: 0
                                                 centerIcons: root.centerIcons
+                                                visibilityOpacity: address === root.draggingAddress || address === root.settlingAddress ? 0 : 1
                                                 hovered: root.hoveredAddress === address
                                                 pressed: root.pressedAddress === address
                                                 topLeftRadius: Math.max((workspaceCell.workspaceAtLeft && workspaceCell.workspaceAtTop ? root.largeWorkspaceRadius : root.smallWorkspaceRadius) - Math.max(distanceFromLeftEdge, distanceFromTopEdge), root.windowCornerRadius)
@@ -501,7 +579,13 @@ Item {
                                 ? rawAddress.toLowerCase()
                                 : ("0x" + rawAddress).toLowerCase();
                         }
-                        readonly property int workspaceId: windowData && windowData.workspace ? windowData.workspace.id : -1
+                        readonly property var moveHint: root.windowMoveHint(address)
+                        readonly property int workspaceId: moveHint && moveHint.workspace !== undefined
+                            ? moveHint.workspace
+                            : (windowData && windowData.workspace ? windowData.workspace.id : -1)
+                        readonly property var positionHint: moveHint && moveHint.x !== undefined && moveHint.y !== undefined
+                            ? moveHint
+                            : null
                         property int monitorId: windowData && windowData.monitor !== undefined ? windowData.monitor : -1
                         property var sourceMonitorData: root.findMonitorData(monitorId)
                         property int workspaceRowIndex: root.getWsRow(workspaceId > 0 ? workspaceId : 1)
@@ -523,7 +607,10 @@ Item {
                             ? root.hyprlandData.windowByAddress[address]
                             : null
                         toplevel: modelData
-                        previewEnabled: root.previewsEnabled && (Drag.active || settlingAfterDrop)
+                        previewEnabled: root.previewsEnabled
+                        forcePreviewActive: root.previewsEnabled
+                            && (dragArea.containsMouse || dragArea.pressed || Drag.active || settlingAfterDrop)
+                        positionOverride: positionHint
                         visible: workspaceId > root.workspaceGroup * root.workspacesShown
                             && workspaceId <= (root.workspaceGroup + 1) * root.workspacesShown
                         scale: root.scale
@@ -694,22 +781,38 @@ Item {
                                     windowTile.x + windowTile.width / 2,
                                     windowTile.y + windowTile.height / 2
                                 );
+                                const movingToWorkspace = targetWorkspace !== -1
+                                    && windowTile.windowData
+                                    && windowTile.windowData.workspace
+                                    && targetWorkspace !== windowTile.windowData.workspace.id;
+                                const movingFloating = !movingToWorkspace
+                                    && movedWindow
+                                    && windowTile.windowData
+                                    && windowTile.windowData.floating;
+                                const dropPosition = movingToWorkspace || movingFloating
+                                    ? root.floatingWindowPosition(windowTile, movingToWorkspace ? targetWorkspace : windowTile.workspaceId)
+                                    : null;
+
+                                if (movingToWorkspace) {
+                                    root.setWindowMoveHint(windowTile.address, targetWorkspace, dropPosition.x, dropPosition.y);
+                                    windowTile.beginSettle(targetWorkspace);
+                                } else if (movingFloating) {
+                                    root.setWindowMoveHint(windowTile.address, windowTile.workspaceId, dropPosition.x, dropPosition.y);
+                                    windowTile.beginSettle(windowTile.workspaceId);
+                                }
 
                                 windowTile.Drag.active = false;
                                 root.draggingFromWorkspace = -1;
                                 root.draggingTargetWorkspace = -1;
-                                root.draggingAddress = "";
+                                if (root.draggingAddress === windowTile.address)
+                                    root.draggingAddress = "";
 
-                                if (targetWorkspace !== -1
-                                        && windowTile.windowData
-                                        && windowTile.windowData.workspace
-                                        && targetWorkspace !== windowTile.windowData.workspace.id) {
-                                    windowTile.beginSettle(targetWorkspace);
+                                if (movingToWorkspace) {
                                     hyprDispatch.moveWindowToWorkspace(windowTile.address, targetWorkspace, false);
-                                } else if (movedWindow && windowTile.windowData && windowTile.windowData.floating) {
-                                    const position = root.floatingWindowPosition(windowTile);
-                                    windowTile.beginSettle(windowTile.workspaceId);
-                                    hyprDispatch.moveWindowToPosition(windowTile.address, position.x, position.y, false);
+                                    if (windowTile.windowData.floating)
+                                        hyprDispatch.moveWindowToPosition(windowTile.address, dropPosition.x, dropPosition.y, false);
+                                } else if (movingFloating) {
+                                    hyprDispatch.moveWindowToPosition(windowTile.address, dropPosition.x, dropPosition.y, false);
                                 } else {
                                     restoreTilePosition.restart();
                                 }

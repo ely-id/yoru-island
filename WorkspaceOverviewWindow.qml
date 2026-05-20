@@ -20,6 +20,8 @@ Item {
     property bool hovered: false
     property bool pressed: false
     property bool draggingActive: false
+    property bool forcePreviewActive: false
+    property var positionOverride: null
     property real visibilityOpacity: 1
     property real topLeftRadius: 18
     property real topRightRadius: 18
@@ -49,7 +51,9 @@ Item {
             return xOffset;
 
         const reserved = monitorData.reserved ? monitorData.reserved : [0, 0, 0, 0];
-        const position = windowData.at ? windowData.at : [monitorData.x, monitorData.y];
+        const position = positionOverride
+            ? [positionOverride.x, positionOverride.y]
+            : (windowData.at ? windowData.at : [monitorData.x, monitorData.y]);
         return Math.max((position[0] - monitorData.x - reserved[0]) * widthRatio * scale, 0) + xOffset;
     }
     readonly property real initY: {
@@ -57,7 +61,9 @@ Item {
             return yOffset;
 
         const reserved = monitorData.reserved ? monitorData.reserved : [0, 0, 0, 0];
-        const position = windowData.at ? windowData.at : [monitorData.x, monitorData.y];
+        const position = positionOverride
+            ? [positionOverride.x, positionOverride.y]
+            : (windowData.at ? windowData.at : [monitorData.x, monitorData.y]);
         return Math.max((position[1] - monitorData.y - reserved[1]) * heightRatio * scale, 0) + yOffset;
     }
     readonly property string iconLookupName: {
@@ -72,7 +78,7 @@ Item {
         ? Quickshell.iconPath(iconThemeName, "image-missing")
         : ""
     readonly property real baseOpacity: !windowData ? 0 : (widgetMonitor && windowData.monitor === widgetMonitor.id ? 1 : 0.46)
-    readonly property bool previewActive: previewEnabled && visible && opacity > 0 && !!toplevel
+    readonly property bool previewActive: previewEnabled && !!toplevel && (forcePreviewActive || (visible && opacity > 0))
 
     function resolveIconThemeName(rawName) {
         const name = String(rawName === undefined || rawName === null ? "" : rawName).trim();
