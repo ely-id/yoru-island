@@ -156,7 +156,7 @@ tide-island
 ```
 
 ## Configuration
-The default configuration is located at `/usr/share/tide-island/UserConfig.qml`.
+The default configuration is located at `~/.config/tide-island/userconfig.json`.
 
 ## Acknowledgments
 
