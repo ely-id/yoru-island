@@ -1,3 +1,0 @@
-module ConnectivityBackend
-plugin ConnectivityBackendplugin
-classname ConnectivityBackendPlugin

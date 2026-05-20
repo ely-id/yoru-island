@@ -9,6 +9,7 @@ install_manifest.txt
 # Qt
 *.pyc
 __pycache__/
+.runtime-qml/
 
 # Arch Linux packaging
 pkg/
@@ -26,4 +27,3 @@ Tide-island/
 
 #code graphs
 .code-review-graph  
-

@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell.Io
 import IslandBackend
 
 Item {
@@ -23,6 +22,7 @@ Item {
         || configuredLeftSwipeIds.indexOf("ram") !== -1
     readonly property bool usesCavaModule: configuredLeftSwipeIds.indexOf("cava") !== -1
     readonly property bool hasCustomLeftItems: customLeftItems.length > 0
+    readonly property string systemServicesClientId: "island-system-state-" + Math.random().toString(36).slice(2)
 
     property int batteryCapacity: SysBackend.batteryCapacity
     property bool isCharging: SysBackend.batteryStatus === "Charging" || SysBackend.batteryStatus === "Full"
@@ -34,8 +34,6 @@ Item {
     property var cavaLevels: [0, 0, 0, 0, 0, 0, 0, 0]
     property var customLeftItems: []
 
-    property real _lastCpuTotal: -1
-    property real _lastCpuIdle: -1
     property string _lastChargeStatus: SysBackend.batteryStatus
     property string _pendingVolType: ""
     property real _pendingVolVal: 0.0
@@ -44,12 +42,14 @@ Item {
     property bool _bluetoothVolumeSuppressed: false
     property real _pendingBrightnessValue: 0.0
     property string _customLeftItemsSignature: ""
-    property bool _cavaRestartDelayActive: false
 
     onConfiguredLeftSwipeIdsChanged: {
         syncCustomLeftItems();
         refreshMissingValues();
+        updateCavaSubscription();
     }
+    onUsesCavaModuleChanged: updateCavaSubscription()
+    onCustomSwipeActiveChanged: updateCavaSubscription()
     onBatteryCapacityChanged: syncCustomLeftItems()
     onIsChargingChanged: syncCustomLeftItems()
     onCurrentVolumeChanged: syncCustomLeftItems()
@@ -65,15 +65,11 @@ Item {
     Component.onCompleted: {
         syncCustomLeftItems();
         refreshMissingValues();
+        updateCavaSubscription();
     }
 
     Component.onDestruction: {
-        cavaRestartTimer.stop();
-
-        if (brightnessSnapshot.running) brightnessSnapshot.running = false;
-        if (volumeSnapshot.running) volumeSnapshot.running = false;
-        if (systemStatsSnapshot.running) systemStatsSnapshot.running = false;
-        if (cavaMonitor.running) cavaMonitor.running = false;
+        SystemServices.setCavaClientActive(systemServicesClientId, false);
     }
 
     function statusIcon(name) {
@@ -101,26 +97,20 @@ Item {
         return statusIcon("brightnessHigh");
     }
 
-    function applyBrightnessOutput(text) {
-        const match = String(text === undefined || text === null ? "" : text).match(/,(\d+)%/);
-        if (!match) return;
-        currentBrightness = clamp01(parseInt(match[1], 10) / 100);
-    }
-
-    function applyVolumeOutput(text) {
-        const source = String(text === undefined || text === null ? "" : text);
-        const match = source.match(/([0-9]*\.?[0-9]+)/);
-        if (match) currentVolume = clamp01(parseFloat(match[1]));
-        isMuted = /\bMUTED\b/i.test(source);
-    }
-
     function refreshMissingValues() {
-        if (currentBrightness < 0 && !brightnessSnapshot.running)
-            brightnessSnapshot.exec(["brightnessctl", "-m"]);
-        if (currentVolume < 0 && !volumeSnapshot.running)
-            volumeSnapshot.exec(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]);
-        if (usesSystemStatsModule && !systemStatsSnapshot.running)
-            systemStatsSnapshot.exec(systemStatsSnapshot.command);
+        if (currentBrightness < 0)
+            SystemServices.requestBrightness();
+        if (currentVolume < 0)
+            SystemServices.requestVolume();
+        if (usesSystemStatsModule)
+            SystemServices.requestSystemStats();
+    }
+
+    function updateCavaSubscription() {
+        const active = usesCavaModule && customSwipeActive;
+        SystemServices.setCavaClientActive(systemServicesClientId, active);
+        if (active)
+            cavaLevels = SystemServices.cavaLevels;
     }
 
     function buildNormalizedSwipeItemIds(rawItems) {
@@ -136,65 +126,6 @@ Item {
         }
 
         return resolved;
-    }
-
-    function applySystemStatsOutput(text) {
-        const lines = String(text === undefined || text === null ? "" : text).trim().split(/\r?\n/);
-
-        for (let index = 0; index < lines.length; index++) {
-            const line = lines[index].trim();
-            if (line === "") continue;
-
-            const parts = line.split(/\s+/);
-            if (parts[0] === "cpu" && parts.length >= 6) {
-                let total = 0;
-                for (let valueIndex = 1; valueIndex < parts.length; valueIndex++)
-                    total += Number(parts[valueIndex]) || 0;
-
-                const idle = (Number(parts[4]) || 0) + (Number(parts[5]) || 0);
-                if (_lastCpuTotal >= 0 && _lastCpuIdle >= 0 && total > _lastCpuTotal) {
-                    const totalDiff = total - _lastCpuTotal;
-                    const idleDiff = idle - _lastCpuIdle;
-                    currentCpuUsage = totalDiff > 0 ? clamp01((totalDiff - idleDiff) / totalDiff) : 0;
-                } else {
-                    currentCpuUsage = currentCpuUsage >= 0 ? currentCpuUsage : 0;
-                }
-
-                _lastCpuTotal = total;
-                _lastCpuIdle = idle;
-                continue;
-            }
-
-            if (parts[0] === "mem" && parts.length >= 3) {
-                const totalMem = Number(parts[1]) || 0;
-                const availableMem = Number(parts[2]) || 0;
-                if (totalMem > 0) currentRamUsage = clamp01((totalMem - availableMem) / totalMem);
-            }
-        }
-    }
-
-    function applyCavaOutput(line) {
-        const values = String(line === undefined || line === null ? "" : line).split(";");
-        if (values.length < 8) return;
-
-        const nextLevels = [
-            clamp01((Number(values[0]) || 0) / 7.0),
-            clamp01((Number(values[1]) || 0) / 7.0),
-            clamp01((Number(values[2]) || 0) / 7.0),
-            clamp01((Number(values[3]) || 0) / 7.0),
-            clamp01((Number(values[4]) || 0) / 7.0),
-            clamp01((Number(values[5]) || 0) / 7.0),
-            clamp01((Number(values[6]) || 0) / 7.0),
-            clamp01((Number(values[7]) || 0) / 7.0)
-        ];
-
-        const previousLevels = Array.isArray(cavaLevels) ? cavaLevels : [];
-        let changed = previousLevels.length !== nextLevels.length;
-        for (let index = 0; !changed && index < nextLevels.length; index++)
-            changed = Math.abs((Number(previousLevels[index]) || 0) - nextLevels[index]) >= 0.03;
-
-        if (changed)
-            cavaLevels = nextLevels;
     }
 
     function buildCustomSwipeItem(itemId) {
@@ -333,39 +264,6 @@ Item {
         )
     }
 
-    Process {
-        id: brightnessSnapshot
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: root.applyBrightnessOutput(text)
-        }
-    }
-
-    Process {
-        id: volumeSnapshot
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: root.applyVolumeOutput(text)
-        }
-    }
-
-    Process {
-        id: systemStatsSnapshot
-
-        command: [
-            "sh",
-            "-lc",
-            "awk 'NR == 1 { print \"cpu\", $2, $3, $4, $5, $6, $7, $8, $9, $10 } $1 == \"MemTotal:\" { total = $2 } $1 == \"MemAvailable:\" { available = $2 } END { print \"mem\", total, available }' /proc/stat /proc/meminfo"
-        ]
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: root.applySystemStatsOutput(text)
-        }
-    }
-
     Timer {
         id: systemStatsPollTimer
 
@@ -374,44 +272,35 @@ Item {
         running: root.usesSystemStatsModule && root.customSwipeActive
         triggeredOnStart: true
 
-        onTriggered: {
-            if (!systemStatsSnapshot.running)
-                systemStatsSnapshot.exec(systemStatsSnapshot.command);
-        }
+        onTriggered: SystemServices.requestSystemStats()
     }
 
-    Timer {
-        id: cavaRestartTimer
+    Connections {
+        target: SystemServices
 
-        interval: 1200
-        repeat: false
-
-        onTriggered: root._cavaRestartDelayActive = false
-    }
-
-    Process {
-        id: cavaMonitor
-
-        running: root.usesCavaModule && root.customSwipeActive && !root._cavaRestartDelayActive
-        command: [
-            "sh",
-            "-lc",
-            "exec cava -p /dev/stdin <<'EOF'\n[general]\nframerate = 30\nbars = 8\nautosens = 1\n[output]\nmethod = raw\nraw_target = /dev/stdout\ndata_format = ascii\nascii_max_range = 7\nchannels = mono\nEOF"
-        ]
-
-        stdout: SplitParser {
-            splitMarker: "\n"
-
-            onRead: function(data) {
-                root.applyCavaOutput(data);
-            }
+        function onBrightnessSnapshotReady(value, errorString) {
+            if (errorString === "" && value >= 0)
+                root.currentBrightness = root.clamp01(value);
         }
 
-        onExited: {
-            if (root.usesCavaModule && root.customSwipeActive) {
-                root._cavaRestartDelayActive = true;
-                cavaRestartTimer.restart();
-            }
+        function onVolumeSnapshotReady(value, muted, errorString) {
+            if (errorString !== "" || value < 0)
+                return;
+            root.currentVolume = root.clamp01(value);
+            root.isMuted = muted;
+        }
+
+        function onSystemStatsReady(cpuUsage, ramUsage, errorString) {
+            if (errorString !== "")
+                return;
+            if (cpuUsage >= 0)
+                root.currentCpuUsage = root.clamp01(cpuUsage);
+            if (ramUsage >= 0)
+                root.currentRamUsage = root.clamp01(ramUsage);
+        }
+
+        function onCavaLevelsChanged() {
+            root.cavaLevels = SystemServices.cavaLevels;
         }
     }
 

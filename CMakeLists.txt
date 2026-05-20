@@ -8,7 +8,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Network DBus Test)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Network DBus Test Concurrent)
 find_library(UDEV_LIB NAMES udev REQUIRED)
 
 add_executable(lyricsmpris
@@ -53,14 +53,20 @@ qt_add_qml_module(IslandBackend
     URI IslandBackend
     VERSION 1.0
     SOURCES
-        SysBackend.h
-        SysBackend.cpp
-        BluetoothPairingAgent.h
-        BluetoothPairingAgent.cpp
-        WifiController.h
-        WifiController.cpp
-        WifiNetworkModel.h
-        WifiNetworkModel.cpp
+        backend/SysBackend.h
+        backend/SysBackend.cpp
+        backend/SystemServices.h
+        backend/SystemServices.cpp
+        backend/BluetoothPairingAgent.h
+        backend/BluetoothPairingAgent.cpp
+        backend/WifiController.h
+        backend/WifiController.cpp
+        backend/WifiNetworkModel.h
+        backend/WifiNetworkModel.cpp
+)
+
+target_include_directories(IslandBackend PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/backend
 )
 
 target_link_libraries(IslandBackend PRIVATE
@@ -69,15 +75,23 @@ target_link_libraries(IslandBackend PRIVATE
     Qt6::Qml
     Qt6::Network
     Qt6::DBus
+    Qt6::Concurrent
     ${UDEV_LIB}
 )
 
 # Installation Rules
 include(GNUInstallDirs)
 
-# Install QML files to /usr/share/tide-island
-file(GLOB QML_FILES CONFIGURE_DEPENDS "*.qml")
-install(FILES ${QML_FILES} DESTINATION ${CMAKE_INSTALL_DATADIR}/tide-island)
+# Install Quickshell entry points and QML component folders to /usr/share/tide-island
+install(FILES
+    shell.qml
+    DynamicIslandWindow.qml
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/tide-island
+)
+install(DIRECTORY qml
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/tide-island
+    FILES_MATCHING PATTERN "*.qml"
+)
 
 # Install IslandBackend backing library to /usr/lib
 install(TARGETS IslandBackend

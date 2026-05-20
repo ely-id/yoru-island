@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
-import Quickshell.Io
+import IslandBackend
 
 Item {
     id: root
@@ -21,17 +21,21 @@ Item {
     property bool monitorsRefreshPending: false
     property bool workspacesRefreshPending: false
     property bool activeWorkspaceRefreshPending: false
+    property bool clientsRequestRunning: false
+    property bool monitorsRequestRunning: false
+    property bool workspacesRequestRunning: false
+    property bool activeWorkspaceRequestRunning: false
     readonly property bool ready: clientsReady && monitorsReady && workspacesReady && activeWorkspaceReady
 
     function parseJson(text, fallback) {
-        const source = (text || "").trim();
-        if (!source)
+        const source = String(text === undefined || text === null ? "" : text).trim();
+        if (source === "")
             return fallback;
 
         try {
             return JSON.parse(source);
         } catch (error) {
-            console.log("[HyprlandData] Failed to parse hyprctl output:", error);
+            console.log("[HyprlandData] Failed to parse snapshot:", error);
             return fallback;
         }
     }
@@ -66,21 +70,25 @@ Item {
     }
 
     function flushRefresh() {
-        if (clientsRefreshPending && !clientsProcess.running) {
+        if (clientsRefreshPending && !clientsRequestRunning) {
             clientsRefreshPending = false;
-            clientsProcess.running = true;
+            clientsRequestRunning = true;
+            SystemServices.requestHyprlandSnapshot("clients", "clients");
         }
-        if (monitorsRefreshPending && !monitorsProcess.running) {
+        if (monitorsRefreshPending && !monitorsRequestRunning) {
             monitorsRefreshPending = false;
-            monitorsProcess.running = true;
+            monitorsRequestRunning = true;
+            SystemServices.requestHyprlandSnapshot("monitors", "monitors");
         }
-        if (workspacesRefreshPending && !workspacesProcess.running) {
+        if (workspacesRefreshPending && !workspacesRequestRunning) {
             workspacesRefreshPending = false;
-            workspacesProcess.running = true;
+            workspacesRequestRunning = true;
+            SystemServices.requestHyprlandSnapshot("workspaces", "workspaces");
         }
-        if (activeWorkspaceRefreshPending && !activeWorkspaceProcess.running) {
+        if (activeWorkspaceRefreshPending && !activeWorkspaceRequestRunning) {
             activeWorkspaceRefreshPending = false;
-            activeWorkspaceProcess.running = true;
+            activeWorkspaceRequestRunning = true;
+            SystemServices.requestHyprlandSnapshot("activeWorkspace", "activeworkspace");
         }
     }
 
@@ -125,10 +133,6 @@ Item {
     Component.onCompleted: updateAll()
     Component.onDestruction: {
         refreshTimer.stop();
-        if (clientsProcess.running) clientsProcess.running = false;
-        if (monitorsProcess.running) monitorsProcess.running = false;
-        if (workspacesProcess.running) workspacesProcess.running = false;
-        if (activeWorkspaceProcess.running) activeWorkspaceProcess.running = false;
     }
 
     Timer {
@@ -148,66 +152,49 @@ Item {
         }
     }
 
-    Process {
-        id: clientsProcess
+    Connections {
+        target: SystemServices
 
-        command: ["hyprctl", "clients", "-j"]
-        stdout: StdioCollector {
-            id: clientsCollector
-
-            onStreamFinished: {
-                root.windowList = root.parseJson(clientsCollector.text, []);
-                root.rebuildWindowIndex();
-                root.clientsReady = true;
+        function onHyprlandSnapshotReady(requestId, subject, payloadJson, errorString) {
+            if (requestId === "clients") {
+                root.clientsRequestRunning = false;
+                if (errorString === "") {
+                    root.windowList = root.parseJson(payloadJson, []);
+                    root.rebuildWindowIndex();
+                    root.clientsReady = true;
+                } else {
+                    console.log("[HyprlandData] Failed to read clients:", errorString);
+                }
+            } else if (requestId === "monitors") {
+                root.monitorsRequestRunning = false;
+                if (errorString === "") {
+                    root.monitors = root.parseJson(payloadJson, []);
+                    root.monitorsReady = true;
+                } else {
+                    console.log("[HyprlandData] Failed to read monitors:", errorString);
+                }
+            } else if (requestId === "workspaces") {
+                root.workspacesRequestRunning = false;
+                if (errorString === "") {
+                    const rawWorkspaces = root.parseJson(payloadJson, []);
+                    root.workspaces = rawWorkspaces.filter((workspace) => workspace.id >= 1 && workspace.id <= 100);
+                    root.workspacesReady = true;
+                } else {
+                    console.log("[HyprlandData] Failed to read workspaces:", errorString);
+                }
+            } else if (requestId === "activeWorkspace") {
+                root.activeWorkspaceRequestRunning = false;
+                if (errorString === "") {
+                    root.activeWorkspace = root.parseJson(payloadJson, null);
+                    root.activeWorkspaceReady = true;
+                } else {
+                    console.log("[HyprlandData] Failed to read active workspace:", errorString);
+                }
+            } else {
+                return;
             }
+
+            root.flushRefresh();
         }
-        onExited: root.flushRefresh()
-    }
-
-    Process {
-        id: monitorsProcess
-
-        command: ["hyprctl", "monitors", "-j"]
-        stdout: StdioCollector {
-            id: monitorsCollector
-
-            onStreamFinished: {
-                root.monitors = root.parseJson(monitorsCollector.text, []);
-                root.monitorsReady = true;
-            }
-        }
-        onExited: root.flushRefresh()
-    }
-
-    Process {
-        id: workspacesProcess
-
-        command: ["hyprctl", "workspaces", "-j"]
-        stdout: StdioCollector {
-            id: workspacesCollector
-
-            onStreamFinished: {
-                const rawWorkspaces = root.parseJson(workspacesCollector.text, []);
-                const filtered = rawWorkspaces.filter((workspace) => workspace.id >= 1 && workspace.id <= 100);
-                root.workspaces = filtered;
-                root.workspacesReady = true;
-            }
-        }
-        onExited: root.flushRefresh()
-    }
-
-    Process {
-        id: activeWorkspaceProcess
-
-        command: ["hyprctl", "activeworkspace", "-j"]
-        stdout: StdioCollector {
-            id: activeWorkspaceCollector
-
-            onStreamFinished: {
-                root.activeWorkspace = root.parseJson(activeWorkspaceCollector.text, null);
-                root.activeWorkspaceReady = true;
-            }
-        }
-        onExited: root.flushRefresh()
     }
 }

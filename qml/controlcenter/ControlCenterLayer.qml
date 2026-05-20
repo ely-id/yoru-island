@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell.Bluetooth
-import Quickshell.Io
 import IslandBackend
+import "../common"
 
 Item {
     id: controlCenter
@@ -46,6 +46,8 @@ Item {
     property real pendingBrightness: 0.5
     property real lastAppliedVolume: -1
     property real lastAppliedBrightness: -1
+    property bool brightnessSetterRunning: false
+    property bool volumeSetterRunning: false
     property bool sliderIntroPending: false
     property bool wifiPanelOpen: false
     property bool bluetoothPanelOpen: false
@@ -57,6 +59,8 @@ Item {
         || batteryDrawerSettling
         || batteryDrawerProgressAnimation.running
     property bool batteryModeBusy: false
+    property bool batteryModeStateRunning: false
+    property bool batteryModeSetterRunning: false
     property bool batteryModeSliderDragging: false
     property bool batteryTlpAvailable: false
     property bool batteryTlpChecked: false
@@ -156,10 +160,6 @@ Item {
         return String(value).trim();
     }
 
-    function shellSingleQuote(value) {
-        return "'" + String(value === undefined || value === null ? "" : value).replace(/'/g, "'\"'\"'") + "'";
-    }
-
     function batteryModeLabel(index) {
         if (index <= 0) return "Power Saver";
         if (index >= 2) return "Performance";
@@ -199,19 +199,21 @@ Item {
     }
 
     function refreshBatteryModeState() {
-        if (batteryModeStateProcess.running)
+        if (batteryModeStateRunning)
             return;
 
-        batteryModeStateProcess.exec(["sh", "-lc", "if command -v tlp >/dev/null 2>&1; then echo __TLP_AVAILABLE__; if command -v tlp-stat >/dev/null 2>&1; then tlp-stat -s 2>/dev/null; fi; else echo __TLP_MISSING__; fi"]);
+        batteryModeStateRunning = true;
+        SystemServices.requestTlpState();
     }
 
-    function applyBatteryModeStateOutput(text) {
+    function applyBatteryModeState(available, profile, output, errorString) {
+        batteryModeStateRunning = false;
         batteryTlpChecked = true;
-        batteryTlpAvailable = text.indexOf("__TLP_AVAILABLE__") >= 0;
+        batteryTlpAvailable = !!available;
 
         if (!batteryTlpAvailable) {
             batteryModeBusy = false;
-            batteryModeError = "TLP is not installed.";
+            batteryModeError = trimString(errorString).length > 0 ? errorString : "TLP is not installed.";
             setBatteryModeVisualIndex(batteryModeAppliedIndex, true);
             return;
         }
@@ -219,9 +221,15 @@ Item {
         if (batteryModeError === "TLP is not installed.")
             batteryModeError = "";
 
-        const profileMatch = text.match(/TLP profile\s*=\s*([a-z-]+)/i);
-        if (profileMatch) {
-            const nextIndex = batteryModeIndexForCommand(profileMatch[1]);
+        let resolvedProfile = trimString(profile);
+        if (resolvedProfile.length === 0) {
+            const profileMatch = String(output || "").match(/TLP profile\s*=\s*([a-z-]+)/i);
+            if (profileMatch)
+                resolvedProfile = profileMatch[1];
+        }
+
+        if (resolvedProfile.length > 0) {
+            const nextIndex = batteryModeIndexForCommand(resolvedProfile);
             batteryModeAppliedIndex = nextIndex;
             setBatteryModeVisualIndex(nextIndex, true);
 
@@ -284,9 +292,10 @@ Item {
 
     function selectBatteryMode(index) {
         if (batteryModeBusy) {
-            if (batteryModeSetter.running)
-                batteryModeSetter.running = false;
+            if (batteryModeSetterRunning)
+                SystemServices.cancelTlpApply();
             batteryModeBusy = false;
+            batteryModeSetterRunning = false;
         }
 
         queueBatteryModeStateRefresh(0);
@@ -313,39 +322,22 @@ Item {
 
         batteryModePendingIndex = nextIndex;
         batteryModeBusy = true;
+        batteryModeSetterRunning = true;
         batteryModeError = "";
         batteryModeInfoMessage = "Applying " + batteryModeLabel(nextIndex) + "...";
         setBatteryModeVisualIndex(nextIndex, true);
-        let batteryCommand = "mode='" + batteryModeCommand(nextIndex) + "'; "
-            + "if ! command -v tlp >/dev/null 2>&1; then exit 127; fi; "
-            + "if [ \"$(id -u)\" -eq 0 ]; then exec tlp \"$mode\"; fi; "
-            + "if command -v sudo >/dev/null 2>&1; then "
-            + "  sudo -n tlp \"$mode\"; "
-            + "  sudo_rc=$?; "
-            + "  if [ \"$sudo_rc\" -eq 0 ]; then exit 0; fi; "
-            + "fi; ";
-
-        const configuredPassword = trimString(userConfig.tlpSudoPassword);
-        if (configuredPassword.length > 0) {
-            batteryCommand += "printf '%s\\n' " + shellSingleQuote(configuredPassword)
-                + " | sudo -S -p '' tlp \"$mode\"; "
-                + "sudo_pw_rc=$?; "
-                + "if [ \"$sudo_pw_rc\" -eq 0 ]; then exit 0; fi; "
-                + "exit \"$sudo_pw_rc\"";
-        } else {
-            batteryCommand += "exit 126";
-        }
-        batteryModeSetter.exec([
-            "sh",
-            "-lc",
-            batteryCommand
-        ]);
+        batteryModeLastCommandOutput = "";
+        SystemServices.setTlpMode(batteryModeCommand(nextIndex), trimString(userConfig.tlpSudoPassword));
     }
 
-    function finishBatteryModeApply(exitCode) {
+    function finishBatteryModeApply(success, exitCode, output, errorString) {
+        batteryModeSetterRunning = false;
         batteryModeBusy = false;
+        batteryModeLastCommandOutput = trimString(output);
+        if (batteryModeLastCommandOutput.length === 0)
+            batteryModeLastCommandOutput = trimString(errorString);
 
-        if (exitCode !== 0) {
+        if (!success) {
             rollbackBatteryMode(classifyBatteryModeFailure(exitCode));
             return;
         }
@@ -580,26 +572,27 @@ Item {
             wifiController.connectToNetwork(ssid, password);
     }
 
-    function applyBrightnessOutput(text) {
-        const match = text.match(/,(\d+)%/);
-        if (match) localBrightness = clamp01(parseInt(match[1], 10) / 100);
+    function applyBrightnessSnapshot(value) {
+        if (value >= 0)
+            syncBrightnessFromLevel(value);
     }
 
-    function applyVolumeOutput(text) {
-        const match = text.match(/([0-9]*\.?[0-9]+)/);
-        if (match) localVolume = clamp01(parseFloat(match[1]));
+    function applyVolumeSnapshot(value) {
+        if (value >= 0)
+            syncVolumeFromLevel(value);
     }
 
     function flushBrightness(force) {
         const nextValue = clamp01(pendingBrightness);
         if (!force && Math.abs(nextValue - lastAppliedBrightness) < 0.01) return;
-        if (brightnessSetter.running) {
+        if (brightnessSetterRunning) {
             brightnessApplyTimer.restart();
             return;
         }
 
         lastAppliedBrightness = nextValue;
-        brightnessSetter.exec(["brightnessctl", "set", Math.round(nextValue * 100) + "%"]);
+        brightnessSetterRunning = true;
+        SystemServices.setBrightness(nextValue);
     }
 
     function queueBrightness(value) {
@@ -612,13 +605,14 @@ Item {
     function flushVolume(force) {
         const nextValue = clamp01(pendingVolume);
         if (!force && Math.abs(nextValue - lastAppliedVolume) < 0.01) return;
-        if (volumeSetter.running) {
+        if (volumeSetterRunning) {
             volumeApplyTimer.restart();
             return;
         }
 
         lastAppliedVolume = nextValue;
-        volumeSetter.exec(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", nextValue.toFixed(2)]);
+        volumeSetterRunning = true;
+        SystemServices.setVolume(nextValue);
     }
 
     function queueVolume(value) {
@@ -828,8 +822,8 @@ Item {
         syncLevelsFromProps();
         displayedBrightness = localBrightness;
         displayedVolume = localVolume;
-        brightnessGetter.exec(["brightnessctl", "-m"]);
-        volumeGetter.exec(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]);
+        SystemServices.requestBrightness();
+        SystemServices.requestVolume();
         refreshBatteryModeState();
     }
 
@@ -868,66 +862,43 @@ Item {
         }
     }
 
-    Process {
-        id: batteryModeStateProcess
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: controlCenter.applyBatteryModeStateOutput(text)
+    Connections {
+        target: SystemServices
+
+        function onTlpStateReady(available, profile, output, errorString) {
+            controlCenter.applyBatteryModeState(available, profile, output, errorString);
         }
-        onExited: function(exitCode) {
-            if (exitCode !== 0 && !controlCenter.batteryTlpAvailable) {
-                controlCenter.batteryTlpChecked = true;
-                controlCenter.rollbackBatteryMode("TLP is not installed.");
-            }
+
+        function onTlpSetFinished(success, exitCode, output, errorString) {
+            controlCenter.finishBatteryModeApply(success, exitCode, output, errorString);
+        }
+
+        function onBrightnessSnapshotReady(value, errorString) {
+            if (errorString === "")
+                controlCenter.applyBrightnessSnapshot(value);
+        }
+
+        function onBrightnessSetFinished(value, success, errorString) {
+            controlCenter.brightnessSetterRunning = false;
+            if (success)
+                controlCenter.applyBrightnessSnapshot(value);
+            if (success && Math.abs(controlCenter.pendingBrightness - controlCenter.lastAppliedBrightness) >= 0.01)
+                brightnessApplyTimer.restart();
+        }
+
+        function onVolumeSnapshotReady(value, muted, errorString) {
+            if (errorString === "")
+                controlCenter.applyVolumeSnapshot(value);
+        }
+
+        function onVolumeSetFinished(value, success, errorString) {
+            controlCenter.volumeSetterRunning = false;
+            if (success)
+                controlCenter.applyVolumeSnapshot(value);
+            if (success && Math.abs(controlCenter.pendingVolume - controlCenter.lastAppliedVolume) >= 0.01)
+                volumeApplyTimer.restart();
         }
     }
-
-    Process {
-        id: batteryModeSetter
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: function(text) {
-                controlCenter.batteryModeLastCommandOutput = controlCenter.trimString(text);
-            }
-        }
-        stderr: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: function(text) {
-                const nextText = controlCenter.trimString(text);
-                if (nextText.length === 0)
-                    return;
-                if (controlCenter.batteryModeLastCommandOutput.length > 0)
-                    controlCenter.batteryModeLastCommandOutput += "\n";
-                controlCenter.batteryModeLastCommandOutput += nextText;
-            }
-        }
-        onRunningChanged: {
-            if (running)
-                controlCenter.batteryModeLastCommandOutput = "";
-        }
-        onExited: function(exitCode) {
-            controlCenter.finishBatteryModeApply(exitCode);
-        }
-    }
-
-    Process {
-        id: brightnessGetter
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: controlCenter.applyBrightnessOutput(text)
-        }
-    }
-
-    Process {
-        id: volumeGetter
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: controlCenter.applyVolumeOutput(text)
-        }
-    }
-
-    Process { id: brightnessSetter }
-    Process { id: volumeSetter }
 
     Timer {
         id: brightnessApplyTimer
@@ -1745,7 +1716,7 @@ Item {
                 brightnessApplyTimer.stop();
                 controlCenter.flushBrightness(true);
             }
-            onCancelRequested: brightnessGetter.exec(["brightnessctl", "-m"])
+            onCancelRequested: SystemServices.requestBrightness()
         }
 
         ControlSliderCard {
@@ -1779,7 +1750,7 @@ Item {
                 volumeApplyTimer.stop();
                 controlCenter.flushVolume(true);
             }
-            onCancelRequested: volumeGetter.exec(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"])
+            onCancelRequested: SystemServices.requestVolume()
         }
     }
 

@@ -3,6 +3,11 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
 import IslandBackend
+import "qml/common"
+import "qml/controlcenter"
+import "qml/connectivity"
+import "qml/island"
+import "qml/workspace"
 
 PanelWindow {
     id: root

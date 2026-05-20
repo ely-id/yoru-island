@@ -1,6 +1,7 @@
 import QtCore
 import QtQuick
 import Quickshell.Io
+import IslandBackend
 
 Item {
     id: root
@@ -18,10 +19,6 @@ Item {
     property int maxFailureRetries: 2
 
     readonly property string normalizedSourcePath: localPath(sourcePath)
-    readonly property string imageMagickExecutable: {
-        const magick = executablePath("magick");
-        return magick !== "" ? magick : executablePath("convert");
-    }
     readonly property string cacheDir: localPath(StandardPaths.writableLocation(StandardPaths.GenericCacheLocation))
         + "/quickshell/dynamic_island/workspace-overview"
     readonly property string cacheFileName: "wallpaper-"
@@ -31,16 +28,17 @@ Item {
     readonly property string cachePath: cacheDir + "/" + cacheFileName
     readonly property string effectiveSource: cacheAvailable
         ? (toFileUrl(cachePath) + "?v=" + cacheRevision)
-        : toFileUrl(normalizedSourcePath)
+        : (normalizedSourcePath === "" ? "" : (toFileUrl(normalizedSourcePath) + "?v=source-" + sourceRevision))
 
     property bool cacheAvailable: false
     property int cacheRevision: 0
     property bool refreshPending: false
+    property bool thumbnailRequestActive: false
     property string inFlightCachePath: ""
     property string inFlightSourcePath: ""
-    property string lastProcessOutput: ""
     property int consecutiveFailureCount: 0
-    readonly property bool busy: refreshPending || refreshDebounceTimer.running || thumbnailProcess.running
+    property int sourceRevision: 0
+    readonly property bool busy: refreshPending || refreshDebounceTimer.running || thumbnailRequestActive
 
     function localPath(value) {
         if (value === undefined || value === null)
@@ -54,10 +52,6 @@ Item {
 
     function toFileUrl(localFile) {
         return localFile === "" ? "" : ("file://" + encodeURI(localFile));
-    }
-
-    function executablePath(executableName) {
-        return localPath(StandardPaths.findExecutable(executableName));
     }
 
     function hashString(value) {
@@ -92,50 +86,30 @@ Item {
     }
 
     function refreshCache() {
-        if (!refreshPending || thumbnailProcess.running)
+        if (!refreshPending || thumbnailRequestActive)
             return;
 
         refreshPending = false;
 
-        if (normalizedSourcePath === "" || imageMagickExecutable === "")
+        if (normalizedSourcePath === "")
             return;
 
         inFlightCachePath = cachePath;
         inFlightSourcePath = normalizedSourcePath;
-        thumbnailProcess.exec([
-            "sh",
-            "-lc",
-            [
-                "src=$1",
-                "dest=$2",
-                "dir=$3",
-                "width=$4",
-                "height=$5",
-                "quality=$7",
-                "mkdir -p \"$dir\" || exit 2",
-                "[ -f \"$src\" ] || exit 3",
-                "if [ -f \"$dest\" ] && [ \"$dest\" -nt \"$src\" ]; then echo unchanged; exit 0; fi",
-                "tmp=$(mktemp \"$dir/.wallpaper-cache.XXXXXX.jpg\") || exit 4",
-                "trap 'rm -f \"$tmp\"' EXIT",
-                "\"$6\" \"$src\" -auto-orient -strip -filter Lanczos -thumbnail \"${width}x${height}^\" "
-                    + "-gravity center -extent \"${width}x${height}\" "
-                    + "-sampling-factor 4:2:0 -interlace Plane -quality \"$quality\" \"$tmp\" || exit 5",
-                "mv -f \"$tmp\" \"$dest\" || exit 6",
-                "echo updated"
-            ].join("; "),
-            "sh",
+        thumbnailRequestActive = true;
+        SystemServices.generateWallpaperThumbnail(
             normalizedSourcePath,
             cachePath,
             cacheDir,
-            String(targetWidth),
-            String(targetHeight),
-            imageMagickExecutable,
-            String(quality)
-        ]);
+            targetWidth,
+            targetHeight,
+            quality
+        );
     }
 
     onCachePathChanged: {
         cacheAvailable = hasCacheOnDisk();
+        sourceRevision += 1;
         scheduleRefresh();
     }
 
@@ -146,8 +120,6 @@ Item {
     Component.onDestruction: {
         refreshDebounceTimer.stop();
         refreshPending = false;
-        if (thumbnailProcess.running)
-            thumbnailProcess.running = false;
     }
 
     Timer {
@@ -168,40 +140,36 @@ Item {
         printErrors: false
 
         onFileChanged: {
-            root.cacheAvailable = root.hasCacheOnDisk();
+            root.sourceRevision += 1;
+            root.cacheAvailable = false;
             root.scheduleRefresh();
         }
     }
 
-    Process {
-        id: thumbnailProcess
+    Connections {
+        target: SystemServices
 
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: root.lastProcessOutput = text
-        }
+        function onWallpaperThumbnailFinished(sourcePath, finishedCachePath, cacheAvailable, updated, errorString) {
+            if (finishedCachePath !== root.inFlightCachePath || sourcePath !== root.inFlightSourcePath)
+                return;
 
-        onRunningChanged: {
-            if (running)
-                root.lastProcessOutput = "";
-        }
+            root.thumbnailRequestActive = false;
 
-        onExited: function(exitCode, exitStatus) {
             const targetStillCurrent = root.inFlightCachePath === root.cachePath
                 && root.inFlightSourcePath === root.normalizedSourcePath;
 
             if (targetStillCurrent) {
-                root.cacheAvailable = root.hasCacheOnDisk();
-                if (exitCode === 0) {
+                root.cacheAvailable = cacheAvailable || root.hasCacheOnDisk();
+                if (errorString === "") {
                     root.consecutiveFailureCount = 0;
                     refreshDebounceTimer.interval = root.refreshDebounceInterval;
                 } else {
                     root.consecutiveFailureCount += 1;
                 }
 
-                if (exitCode === 0
+                if (errorString === ""
                         && root.cacheAvailable
-                        && root.lastProcessOutput.indexOf("updated") !== -1) {
+                        && updated) {
                     root.cacheRevision += 1;
                 }
             }

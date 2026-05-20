@@ -16,7 +16,7 @@ constexpr auto kBluezService = "org.bluez";
 constexpr auto kBluezAgentManagerPath = "/org/bluez";
 constexpr auto kBluezAgentManagerInterface = "org.bluez.AgentManager1";
 constexpr auto kBluezDeviceInterface = "org.bluez.Device1";
-constexpr auto kAgentObjectPath = "/com/quickshell/ConnectivityBackend/BluetoothAgent";
+constexpr auto kAgentObjectPath = "/com/tideisland/IslandBackend/BluetoothAgent";
 constexpr auto kCapability = "KeyboardDisplay";
 
 constexpr auto kRejectedError = "org.bluez.Error.Rejected";
