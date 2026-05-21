@@ -222,7 +222,7 @@ journalctl --user -u tide-island -f
 tide-island-setup --check
 ```
 
-#### 如果配置确实则设置:
+#### 如果配置缺失则设置:
 ```bash
 tide-island-setup --launch
 ```
