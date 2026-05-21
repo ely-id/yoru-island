@@ -53,52 +53,46 @@ Tide Island 是一个给 Hyprland 用的小桌面组件，做成了类似灵动�
 
 ## 预览
 
-<!--
-如果你有 GIF，这一部分会更有吸引力。
-<p align="center">
-  <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/demo.gif" width="760" alt="Tide Island 演示">
-</p>
--->
-
 <table>
   <tr>
     <td width="50%">
-      <h3 align="center">时钟模式</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_1.png" width="100%" alt="时钟模式预览">
+      <h3 align="center">时钟</h3>
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/clock.png" width="100%" alt="Clock mode preview">
     </td>
     <td width="50%">
       <h3 align="center">系统通知</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_2.png" width="100%" alt="系统通知预览">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/msg.png" width="100%" alt="System notification preview">
     </td>
   </tr>
   <tr>
     <td width="50%">
       <h3 align="center">控制中心</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_3.png" width="100%" alt="控制中心预览">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/cc_1.png" width="100%" alt="Control center preview">
     </td>
     <td width="50%">
       <h3 align="center">音乐播放器</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_4.png" width="100%" alt="音乐播放器预览">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/player.png" width="100%" alt="Music player preview">
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <h3 align="center">工作区指示器</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_5.png" width="100%" alt="工作区指示器预览">
+      <h3 align="center">蓝牙连接状态</h3>
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/onBTConnected.png" width="100%" alt="Workspace indicator preview">
     </td>
+    <td width="50%">
+      <h3 align="center">工作区总览</h3>
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/overview.png" width="100%" alt="Workspace overview preview">
+    </td>
+    
+  </tr>
+  <tr>
     <td width="50%">
       <h3 align="center">歌词</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_6.png" width="100%" alt="歌词预览">
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <h3 align="center">工作区概览</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_7.png" width="100%" alt="工作区概览预览">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/lyrics.png" width="100%" alt="Lyrics preview">
     </td>
     <td width="50%">
-      <h3 align="center">自定义页面</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_9.png" width="100%" alt="自定义页面预览">
+      <h3 align="center">自定义</h3>
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/custom.png" width="100%" alt="Custom page preview">
     </td>
   </tr>
 </table>
