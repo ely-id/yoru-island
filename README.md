@@ -36,7 +36,7 @@
   ·
   <a href="#configuration">Configuration</a>
   ·
-  <a href="#important-notes">Important Notes</a>
+  <a href="#troubleshooting">Troubleshooting</a>
 </p>
 
 ---
@@ -53,13 +53,6 @@ It's built with Quickshell, QML, and C++/Qt 6. Most of the effort went into maki
 ---
 
 ## Preview
-
-<!--
-If you have a GIF, this section becomes much stronger.
-<p align="center">
-  <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/demo.gif" width="760" alt="Tide Island demo">
-</p>
--->
 
 <table>
   <tr>
@@ -127,7 +120,6 @@ Tide Island can display temporary feedback for:
 - Volume changes
 - Brightness changes
 - Battery charging / discharging
-- Caps Lock state
 - Workspace changes
 - Media playback
 - System notifications
@@ -154,8 +146,8 @@ Current target usage:
 
 | Metric    | Target                      |
 | --------- | --------------------------- |
-| Memory    | `< 200 MB PSS`              |
-| CPU       | `< 2%` during normal use    |
+| Memory    | < 200 MB PSS           |
+| CPU       | < 2% during normal use    |
 | Rendering | Event-driven where possible |
 | Desktop   | Hyprland                    |
 
@@ -269,18 +261,6 @@ systemctl --user restart tide-island
 
 ---
 
-## Important Notes
-
-Please read this section before opening an issue.
-
-### Caps Lock detection
-
-Caps Lock status is currently checked through `hyprctl devices`.
-
-Make sure `hyprctl` is installed and available in your `$PATH`.
-
----
-
 ## Troubleshooting
 
 ### Tide Island does not start
@@ -323,7 +303,6 @@ Issues, bug reports, design suggestions, and pull requests are all welcome.
 Thanks to:
 
 - [@end-4](https://github.com/end-4) for the workspace overview design inspiration
-- [@BEST8OY](https://github.com/BEST8OY) for lyrics support
 - [@gozhuimeng](https://github.com/gozhuimeng) for improving the lyrics backend
 
 ---
@@ -337,6 +316,6 @@ Thanks to:
 
 <p align="center">
   <sub>
-    Made for Hyprland users who like their desktop calm, useful, and slightly alive.
+    Made for Hyprland users who like their desktop calm and useful
   </sub>
 </p
