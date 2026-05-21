@@ -65,41 +65,42 @@ If you have a GIF, this section becomes much stronger.
   <tr>
     <td width="50%">
       <h3 align="center">Clock Mode</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_1.png" width="100%" alt="Clock mode preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/clock.png" width="100%" alt="Clock mode preview">
     </td>
     <td width="50%">
       <h3 align="center">System Notifications</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_2.png" width="100%" alt="System notification preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/msg.png" width="100%" alt="System notification preview">
     </td>
   </tr>
   <tr>
     <td width="50%">
       <h3 align="center">Control Center</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_3.png" width="100%" alt="Control center preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/cc_1.png" width="100%" alt="Control center preview">
     </td>
     <td width="50%">
       <h3 align="center">Music Player</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_4.png" width="100%" alt="Music player preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/player.png" width="100%" alt="Music player preview">
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <h3 align="center">Workspace Indicator</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_5.png" width="100%" alt="Workspace indicator preview">
+      <h3 align="center">BT connect msg</h3>
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/onBTConnected.png" width="100%" alt="Workspace indicator preview">
     </td>
-    <td width="50%">
-      <h3 align="center">Lyrics</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_6.png" width="100%" alt="Lyrics preview">
-    </td>
-  </tr>
-  <tr>
     <td width="50%">
       <h3 align="center">Workspace Overview</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_7.png" width="100%" alt="Workspace overview preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/overview.png" width="100%" alt="Workspace overview preview">
+    </td>
+    
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3 align="center">Lyrics</h3>
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/lyrics.png" width="100%" alt="Lyrics preview">
     </td>
     <td width="50%">
       <h3 align="center">Custom Page</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Preview_9.png" width="100%" alt="Custom page preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/custom.png" width="100%" alt="Custom page preview">
     </td>
   </tr>
 </table>
