@@ -1,7 +1,7 @@
 <h1 align="center">Tide Island</h1>
 
 <p align="center">
-  <b>A smooth, lightweight, and flexible interactive island for Hyprland.</b>
+  <b>A smooth, lightweight, and flexible interactive Dynamic Island for Hyprland.</b>
 </p>
 
 <p align="center">
@@ -23,7 +23,6 @@
     <img alt="AUR package" src="https://img.shields.io/aur/version/tide-island?style=flat-square&label=AUR&color=8aadf4">
   </a>
   <img alt="Hyprland" src="https://img.shields.io/badge/Hyprland-111111?style=flat-square&color=8aadf4">
-  </a>
   <img alt="C++ + Qt" src="https://img.shields.io/badge/C%2B%2B%20%2B%20Qt-111111?style=flat-square&color=8aadf4">
 </p>
 
@@ -36,7 +35,7 @@
   ·
   <a href="#configuration">Configuration</a>
   ·
-  <a href="#troubleshooting">Troubleshooting</a>
+  <a href="#common-commands">Common Commands</a>
 </p>
 
 ---
@@ -49,8 +48,7 @@ When nothing much is going on, it just sits in the corner, staying out of the wa
 
 It's built with Quickshell, QML, and C++/Qt 6. Most of the effort went into making the animations as smooth as possible, interactions responsive, and resource usage kept in check. I can't claim it's anything special, but I hope it's comfortable to use.
 
-
----
+<br>
 
 ## Preview
 
@@ -77,14 +75,13 @@ It's built with Quickshell, QML, and C++/Qt 6. Most of the effort went into maki
   </tr>
   <tr>
     <td width="50%">
-      <h3 align="center">BT connect msg</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/onBTConnected.png" width="100%" alt="Workspace indicator preview">
+      <h3 align="center">Bluetooth Connection Status</h3>
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/onBTConnected.png" width="100%" alt="Bluetooth connection status preview">
     </td>
     <td width="50%">
       <h3 align="center">Workspace Overview</h3>
       <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/overview.png" width="100%" alt="Workspace overview preview">
     </td>
-    
   </tr>
   <tr>
     <td width="50%">
@@ -98,7 +95,7 @@ It's built with Quickshell, QML, and C++/Qt 6. Most of the effort went into maki
   </tr>
 </table>
 
----
+<br>
 
 ## Features
 
@@ -138,22 +135,20 @@ The custom page can display:
 - RAM
 - CAVA audio visualizer
 
----
-
 ## Performance
 
 Current target usage:
 
 | Metric    | Target                      |
 | --------- | --------------------------- |
-| Memory    | < 200 MB PSS           |
-| CPU       | < 2% during normal use    |
+| Memory    | < 200 MB PSS                |
+| CPU       | < 2% during normal use      |
 | Rendering | Event-driven where possible |
 | Desktop   | Hyprland                    |
 
 Performance may vary depending on enabled modules, lyrics providers, animations, and system configuration.
 
----
+<br>
 
 ## Installation
 
@@ -173,56 +168,75 @@ cd Tide-island
 makepkg -si
 ```
 
----
+<br>
 
 ## Starting Tide Island
 
 Tide Island provides a systemd user service.
 
-Enable and start it with:
+Enable and start it immediately:
 
 ```bash
 systemctl --user enable --now tide-island
 ```
 
-Useful commands:
-
-```bash
-# Restart after config changes
-systemctl --user restart tide-island
-
-# Stop Tide Island
-systemctl --user stop tide-island
-
-# View logs
-journalctl --user -u tide-island -f
-```
-
-You can also start it manually:
-
-```bash
-tide-island
-```
-
-If you prefer managing startup from Hyprland directly, add this to your `hyprland.conf`:
+If you want to manage startup manually, add this to your `hyprland.conf`:
 
 ```conf
 exec-once = tide-island
 ```
 
-Or `hyprland.lua`:
+Or add this to `hyprland.lua`:
 
 ```lua
-hl.exec_once("tide-island")  
+hl.exec_once("tide-island")
 ```
 
-If the systemd service is enabled, you do not need the `exec-once` line.
+If the systemd service is already enabled, you do not need to add `exec-once`.
 
----
+<br>
+
+## Common Commands
+
+#### Restart after editing the configuration:
+
+```bash
+systemctl --user restart tide-island
+```
+
+#### Stop Tide Island:
+
+```bash
+systemctl --user stop tide-island
+```
+
+#### View logs:
+
+```bash
+journalctl --user -u tide-island -f
+```
+
+#### Check whether configuration files are missing:
+
+```bash
+tide-island-setup --check
+```
+
+#### Set up missing configuration files:
+
+```bash
+tide-island-setup --launch
+```
+
+#### Launch setup wizard:
+
+```bash
+tide-island-setup --wizard
+```
 
 ## Configuration
 
-The default user configuration is located at:
+The default user configuration file is located at:
 
 ```text
 ~/.config/tide-island/userconfig.json
@@ -234,7 +248,7 @@ After editing the configuration, restart the service:
 systemctl --user restart tide-island
 ```
 
----
+<br>
 
 ## Dependencies
 
@@ -259,7 +273,7 @@ systemctl --user restart tide-island
 - CAVA for audio visualization
 - MPRIS-compatible music player for media integration
 
----
+<br>
 
 ## Troubleshooting
 
@@ -290,13 +304,11 @@ systemctl status NetworkManager
 systemctl status bluetooth
 ```
 
----
+<br>
 
 ## Contributing
 
 Issues, bug reports, design suggestions, and pull requests are all welcome.
-
----
 
 ## Acknowledgments
 
@@ -304,8 +316,6 @@ Thanks to:
 
 - [@end-4](https://github.com/end-4) for the workspace overview design inspiration
 - [@gozhuimeng](https://github.com/gozhuimeng) for improving the lyrics backend
-
----
 
 ## Community
 
@@ -316,6 +326,6 @@ Thanks to:
 
 <p align="center">
   <sub>
-    Made for Hyprland users who like their desktop calm and useful
+    Made for Hyprland users who like quiet and practical desktops.
   </sub>
-</p
+</p>
