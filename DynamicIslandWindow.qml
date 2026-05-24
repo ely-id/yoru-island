@@ -45,7 +45,7 @@ PanelWindow {
         id: hyprDispatch
     }
 
-    color: "transparent"
+    color: StyleTokens.transparent
     anchors { top: true; left: true; right: true }
     mask: Region {
         // Input is the union of the island's visible surfaces plus a compact top
@@ -114,10 +114,10 @@ PanelWindow {
         : 44
     readonly property color overviewCapsuleColor: islandContainer.overviewView
         ? islandContainer.overviewView.cardColor
-        : "#ee17181b"
+        : StyleTokens.overviewCard
     readonly property color overviewCapsuleBorderColor: islandContainer.overviewView
         ? islandContainer.overviewView.cardBorderColor
-        : "#33ffffff"
+        : StyleTokens.overviewBorder
     property bool wifiConnectivityDetailOpen: false
     property bool wifiConnectivityDetailMounted: false
     property bool bluetoothConnectivityDetailOpen: false
@@ -1039,7 +1039,7 @@ PanelWindow {
             z: 5
             property int morphDuration: 400
             property real outlineWidth: root.overviewContentVisible ? 1 : 0
-            property color outlineColor: root.overviewContentVisible ? root.overviewCapsuleBorderColor : "#00000000"
+            property color outlineColor: root.overviewContentVisible ? root.overviewCapsuleBorderColor : StyleTokens.clearBlack
             property real displayedWidth: baseTargetWidth
             readonly property real baseTargetWidth: {
                 if (root.overviewVisible) return root.overviewCapsuleWidth;
@@ -1125,7 +1125,7 @@ PanelWindow {
             readonly property real sideSwipePreviewWidth: mainCapsule.sideSwipeWidthForProgress(
                 islandContainer.swipeTransitionProgress
             )
-            color: root.overviewContentVisible ? root.overviewCapsuleColor : "black"
+            color: root.overviewContentVisible ? root.overviewCapsuleColor : StyleTokens.black
             y: 4
             anchors.horizontalCenter: parent.horizontalCenter
             clip: true
@@ -1163,9 +1163,9 @@ PanelWindow {
                 anchors.fill: parent
                 anchors.margins: 1
                 radius: Math.max(parent.radius - 1, 0)
-                color: "transparent"
+                color: StyleTokens.transparent
                 border.width: 1
-                border.color: "#12ffffff"
+                border.color: StyleTokens.overviewInnerBorder
                 opacity: root.overviewContentVisible ? 1 : 0
 
                 Behavior on opacity {

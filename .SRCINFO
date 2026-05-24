@@ -18,7 +18,6 @@ pkgbase = tide-island
 	depends = upower
 	depends = bluez
 	depends = bluez-utils
-	depends = python
 	depends = quickshell
 	optdepends = cava: for audio visualizer
 	optdepends = imagemagick: for wallpaper thumbnails

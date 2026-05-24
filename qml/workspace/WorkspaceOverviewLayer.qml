@@ -57,12 +57,12 @@ Item {
         userConfig.workspaceOverviewWindowFocusButton,
         userConfig.workspaceOverviewWindowCloseButton
     ])
-    readonly property color activeBorderColor: "#73d4ff"
-    readonly property color cardColor: "#ee17181b"
-    readonly property color cardBorderColor: "#33ffffff"
-    readonly property color workspaceColor: "#ff202226"
-    readonly property color workspaceHoverColor: "#ff2b2d34"
-    readonly property color workspaceBorderHoverColor: "#66d9f6ff"
+    readonly property color activeBorderColor: StyleTokens.workspaceActiveBorder
+    readonly property color cardColor: StyleTokens.overviewCard
+    readonly property color cardBorderColor: StyleTokens.overviewBorder
+    readonly property color workspaceColor: StyleTokens.workspaceCell
+    readonly property color workspaceHoverColor: StyleTokens.workspaceCellHover
+    readonly property color workspaceBorderHoverColor: StyleTokens.workspaceCellBorderHover
     readonly property real workspaceImplicitWidth: {
         const reserved = monitorData && monitorData.reserved ? monitorData.reserved : [0, 0, 0, 0];
         const screenWidth = monitor ? monitor.width : (screen ? screen.width : 1920);
@@ -386,9 +386,9 @@ Item {
             anchors.fill: parent
             anchors.margins: 1
             radius: parent.radius - 1
-            color: "transparent"
+            color: StyleTokens.transparent
             border.width: 1
-            border.color: "#12ffffff"
+            border.color: StyleTokens.overviewInnerBorder
         }
 
         Item {
@@ -447,12 +447,12 @@ Item {
                                 bottomLeftRadius: workspaceAtLeft && workspaceAtBottom ? root.largeWorkspaceRadius : root.smallWorkspaceRadius
                                 bottomRightRadius: workspaceAtRight && workspaceAtBottom ? root.largeWorkspaceRadius : root.smallWorkspaceRadius
                                 border.width: hoveredWhileDragging ? 2 : 1
-                                border.color: hoveredWhileDragging ? root.workspaceBorderHoverColor : "#1effffff"
+                                border.color: hoveredWhileDragging ? root.workspaceBorderHoverColor : StyleTokens.workspaceCellBorder
 
                                 ClippingRectangle {
                                     anchors.fill: parent
                                     anchors.margins: 1
-                                    color: "transparent"
+                                    color: StyleTokens.transparent
                                     contentUnderBorder: true
                                     antialiasing: true
                                     topLeftRadius: Math.max(workspaceCell.topLeftRadius - 1, 0)
@@ -473,7 +473,7 @@ Item {
 
                                     Rectangle {
                                         anchors.fill: parent
-                                        color: hoveredWhileDragging ? "#280d131a" : "#42070b10"
+                                        color: hoveredWhileDragging ? StyleTokens.workspaceOverlayHover : StyleTokens.workspaceOverlay
                                     }
 
                                     Item {
@@ -880,7 +880,7 @@ Item {
                     y: (root.workspaceImplicitHeight + root.workspaceSpacing) * rowIndex
                     width: root.workspaceImplicitWidth
                     height: root.workspaceImplicitHeight
-                    color: "transparent"
+                    color: StyleTokens.transparent
                     border.width: 2
                     border.color: root.activeBorderColor
                     topLeftRadius: workspaceAtLeft && workspaceAtTop ? root.largeWorkspaceRadius : root.smallWorkspaceRadius

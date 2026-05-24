@@ -70,6 +70,14 @@ target_link_libraries(user_config_backend_tests PRIVATE
 
 add_test(NAME user_config_backend COMMAND user_config_backend_tests)
 
+add_executable(tide-island-setup
+    tools/tide-island-setup.cpp
+)
+
+target_link_libraries(tide-island-setup PRIVATE
+    Qt6::Core
+)
+
 # Main Backend Module (Combining all C++ components)
 qt_add_qml_module(IslandBackend
     URI IslandBackend
@@ -79,6 +87,8 @@ qt_add_qml_module(IslandBackend
         backend/SysBackend.cpp
         backend/SystemServices.h
         backend/SystemServices.cpp
+        backend/StyleTokensBackend.h
+        backend/StyleTokensBackend.cpp
         backend/UserConfigBackend.h
         backend/UserConfigBackend.cpp
         backend/BluetoothPairingAgent.h
@@ -143,7 +153,9 @@ install(PROGRAMS tide-island-launcher DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME
 install(TARGETS lyricsmpris
     RUNTIME DESTINATION ${CMAKE_INSTALL_DATADIR}/tide-island/bin
 )
-install(PROGRAMS bin/tide-island-setup DESTINATION ${CMAKE_INSTALL_DATADIR}/tide-island/bin)
+install(TARGETS tide-island-setup
+    RUNTIME DESTINATION ${CMAKE_INSTALL_DATADIR}/tide-island/bin
+)
 
 # Install desktop entry
 install(FILES tide-island.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)

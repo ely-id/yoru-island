@@ -84,19 +84,19 @@ Item {
     readonly property var wifiNetworks: wifiController ? wifiController.networks : null
 
     readonly property real sliderKnobSize: 24
-    readonly property color panelColor: "#000000"
-    readonly property color moduleColor: "#1c1c1e"
-    readonly property color moduleHover: "#232326"
-    readonly property color trackColor: "#2c2c2e"
-    readonly property color textPrimary: "#f5f5f7"
-    readonly property color textSecondary: "#8e8e93"
-    readonly property color cardAccent: "#0a84ff"
-    readonly property color cardAccentPressed: "#0066d6"
-    readonly property color cardFillActive: "#26272b"
-    readonly property color cardFillHover: "#222327"
-    readonly property color buttonFill: "#f5f5f7"
-    readonly property color buttonFillHover: "#ffffff"
-    readonly property color buttonFillPressed: "#e9e9ec"
+    readonly property color panelColor: StyleTokens.panel
+    readonly property color moduleColor: StyleTokens.module
+    readonly property color moduleHover: StyleTokens.moduleHover
+    readonly property color trackColor: StyleTokens.track
+    readonly property color textPrimary: StyleTokens.textPrimary
+    readonly property color textSecondary: StyleTokens.textSecondary
+    readonly property color cardAccent: StyleTokens.accent
+    readonly property color cardAccentPressed: StyleTokens.accentPressed
+    readonly property color cardFillActive: StyleTokens.cardFillActive
+    readonly property color cardFillHover: StyleTokens.cardFillHover
+    readonly property color buttonFill: StyleTokens.buttonFill
+    readonly property color buttonFillHover: StyleTokens.buttonFillHover
+    readonly property color buttonFillPressed: StyleTokens.buttonFillPressed
     readonly property string wifiGlyph: ""
     readonly property string bluetoothGlyph: ""
     readonly property var batteryModeGlyphs: ["", "", ""]
@@ -1029,7 +1029,7 @@ Item {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     text: currentTime
-                    color: "#f7f8fb"
+                    color: StyleTokens.textPrimaryBright
                     font.pixelSize: 19
                     font.family: heroFontFamily
                     font.weight: Font.Bold
@@ -1056,7 +1056,7 @@ Item {
 
                 Text {
                     text: userConfig.controlCenterIcons["charging"]
-                    color: "#ffffff"
+                    color: StyleTokens.white
                     font.pixelSize: 13
                     font.family: iconFontFamily
                     visible: isCharging
@@ -1065,7 +1065,7 @@ Item {
 
                 Text {
                     text: batteryCapacity + "%"
-                    color: "#ffffff"
+                    color: StyleTokens.white
                     font.pixelSize: 13
                     font.family: textFontFamily
                     font.weight: Font.DemiBold
@@ -1081,8 +1081,8 @@ Item {
                         anchors.fill: parent
                         anchors.rightMargin: 2
                         radius: 4
-                        color: "transparent"
-                        border.color: "#8e8e93"
+                        color: StyleTokens.transparent
+                        border.color: StyleTokens.textSecondary
                         border.width: 1
 
                         Rectangle {
@@ -1093,9 +1093,9 @@ Item {
                             radius: 2
                             width: (parent.width - 4) * (batteryCapacity / 100.0)
                             color: {
-                                if (batteryCapacity <= 10) return "#ff3b30";
-                                if (batteryCapacity <= 20) return "#ffcc00";
-                                return "#34c759";
+                                if (batteryCapacity <= 10) return StyleTokens.danger;
+                                if (batteryCapacity <= 20) return StyleTokens.warning;
+                                return StyleTokens.success;
                             }
 
                             Behavior on width {
@@ -1111,7 +1111,7 @@ Item {
                         width: 2
                         height: 6
                         radius: 1
-                        color: "#8e8e93"
+                        color: StyleTokens.textSecondary
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -1133,11 +1133,11 @@ Item {
                     width: (connectivityCardsRow.width - connectivityCardsRow.spacing) / 2
                     height: connectivityCardsRow.height
                     radius: 20
-                    color: (wifiCardMouse.containsMouse || wifiPanelOpen) ? "#3a3a3d" : "#343437"
+                    color: (wifiCardMouse.containsMouse || wifiPanelOpen) ? StyleTokens.connectivityCardHover : StyleTokens.connectivityCard
 
                     Behavior on color {
                         ColorAnimation {
-                            duration: 120
+                            duration: StyleTokens.durationFast
                         }
                     }
 
@@ -1153,7 +1153,7 @@ Item {
                         anchors.top: parent.top
                         anchors.topMargin: 12
                         text: wifiGlyph
-                        color: wifiEnabled ? cardAccent : "#878a92"
+                        color: wifiEnabled ? cardAccent : StyleTokens.textDisabled
                         font.pixelSize: 18
                         font.family: iconFontFamily
                     }
@@ -1167,11 +1167,11 @@ Item {
                         width: 34
                         height: 20
                         radius: 10
-                        color: wifiEnabled ? "#34c759" : "#63656c"
+                        color: wifiEnabled ? StyleTokens.success : StyleTokens.switchOff
 
                         Behavior on color {
                             ColorAnimation {
-                                duration: 120
+                                duration: StyleTokens.durationFast
                             }
                         }
 
@@ -1181,7 +1181,7 @@ Item {
                             radius: 8
                             y: 2
                             x: wifiEnabled ? 16 : 2
-                            color: "#ffffff"
+                            color: StyleTokens.white
 
                             Behavior on x {
                                 NumberAnimation {
@@ -1228,7 +1228,7 @@ Item {
                             anchors.rightMargin: 8
                             anchors.bottom: parent.bottom
                             text: wifiStatusText
-                            color: "#9b9da4"
+                            color: StyleTokens.textMuted
                             font.pixelSize: 10
                             font.family: textFontFamily
                             font.weight: Font.Medium
@@ -1240,7 +1240,7 @@ Item {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
                             text: "›"
-                            color: wifiPanelOpen ? "#c7c9cf" : "#8f9198"
+                            color: wifiPanelOpen ? "#c7c9cf" : StyleTokens.textSubtle
                             font.pixelSize: 17
                             font.family: textFontFamily
                             font.weight: Font.DemiBold
@@ -1258,11 +1258,11 @@ Item {
                     width: (connectivityCardsRow.width - connectivityCardsRow.spacing) / 2
                     height: connectivityCardsRow.height
                     radius: 20
-                    color: (bluetoothCardMouse.containsMouse || bluetoothPanelOpen) ? "#3a3a3d" : "#343437"
+                    color: (bluetoothCardMouse.containsMouse || bluetoothPanelOpen) ? StyleTokens.connectivityCardHover : StyleTokens.connectivityCard
 
                     Behavior on color {
                         ColorAnimation {
-                            duration: 120
+                            duration: StyleTokens.durationFast
                         }
                     }
 
@@ -1278,7 +1278,7 @@ Item {
                         anchors.top: parent.top
                         anchors.topMargin: 12
                         text: bluetoothGlyph
-                        color: bluetoothEnabled ? cardAccent : "#878a92"
+                        color: bluetoothEnabled ? cardAccent : StyleTokens.textDisabled
                         font.pixelSize: 18
                         font.family: iconFontFamily
                     }
@@ -1292,11 +1292,11 @@ Item {
                         width: 34
                         height: 20
                         radius: 10
-                        color: bluetoothEnabled ? "#34c759" : "#63656c"
+                        color: bluetoothEnabled ? StyleTokens.success : StyleTokens.switchOff
 
                         Behavior on color {
                             ColorAnimation {
-                                duration: 120
+                                duration: StyleTokens.durationFast
                             }
                         }
 
@@ -1306,7 +1306,7 @@ Item {
                             radius: 8
                             y: 2
                             x: bluetoothEnabled ? 16 : 2
-                            color: "#ffffff"
+                            color: StyleTokens.white
 
                             Behavior on x {
                                 NumberAnimation {
@@ -1353,7 +1353,7 @@ Item {
                             anchors.rightMargin: 8
                             anchors.bottom: parent.bottom
                             text: bluetoothStatusText
-                            color: "#9b9da4"
+                            color: StyleTokens.textMuted
                             font.pixelSize: 10
                             font.family: textFontFamily
                             font.weight: Font.Medium
@@ -1365,7 +1365,7 @@ Item {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
                             text: "›"
-                            color: bluetoothPanelOpen ? "#c7c9cf" : "#8f9198"
+                            color: bluetoothPanelOpen ? "#c7c9cf" : StyleTokens.textSubtle
                             font.pixelSize: 17
                             font.family: textFontFamily
                             font.weight: Font.DemiBold
@@ -1399,7 +1399,7 @@ Item {
                 width: batteryDrawer.cardWidth
                 height: controlCenter.batteryModeCardHeight
                 radius: 20
-                color: "#343437"
+                color: StyleTokens.connectivityCard
                 opacity: Math.min(1, controlCenter.batteryDrawerProgress * 1.35)
                 clip: true
 
@@ -1426,7 +1426,7 @@ Item {
                         : (controlCenter.batteryModeInfoMessage.length > 0
                             ? controlCenter.batteryModeInfoMessage
                             : controlCenter.batteryModeStatusText)
-                    color: controlCenter.batteryModeError.length > 0 ? "#ff7c72" : "#9b9da4"
+                    color: controlCenter.batteryModeError.length > 0 ? StyleTokens.error : StyleTokens.textMuted
                     horizontalAlignment: Text.AlignRight
                     font.pixelSize: 9
                     font.family: textFontFamily
@@ -1484,7 +1484,7 @@ Item {
                                     width: index === controlCenter.batteryModeIndex ? 32 : 28
                                     height: index === controlCenter.batteryModeIndex ? 28 : 24
                                     radius: 12
-                                    color: index === controlCenter.batteryModeIndex ? "#f5f5f7" : "#292a2f"
+                                    color: index === controlCenter.batteryModeIndex ? StyleTokens.textPrimary : "#292a2f"
 
                                     Behavior on width {
                                         NumberAnimation {
@@ -1509,7 +1509,7 @@ Item {
                                     Text {
                                         anchors.centerIn: parent
                                         text: controlCenter.batteryModeGlyphs[index]
-                                        color: index === controlCenter.batteryModeIndex ? "#1c1c1e" : "#b5b7bf"
+                                        color: index === controlCenter.batteryModeIndex ? StyleTokens.module : StyleTokens.textDim
                                         font.pixelSize: index === controlCenter.batteryModeIndex ? 15 : 13
                                         font.family: iconFontFamily
                                     }
@@ -1602,7 +1602,7 @@ Item {
                     }
                     GradientStop {
                         position: 1
-                        color: "#00000000"
+                        color: StyleTokens.clearBlack
                     }
                 }
             }
@@ -1621,7 +1621,7 @@ Item {
                     width: 48
                     height: 5
                     radius: 3
-                    color: controlCenter.batteryDrawerOpen ? "#d4d6dc" : "#8f9198"
+                    color: controlCenter.batteryDrawerOpen ? "#d4d6dc" : StyleTokens.textSubtle
                     opacity: 0.88
                 }
 

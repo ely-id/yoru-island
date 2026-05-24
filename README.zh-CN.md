@@ -217,6 +217,8 @@ journalctl --user -u tide-island -f
 tide-island-setup --check
 ```
 
+这会列出所有缺失的配置项，并为无需交互的配置项写入默认值。
+
 #### 如果配置缺失则设置:
 ```bash
 tide-island-setup --launch
@@ -234,6 +236,8 @@ tide-island-setup --wizard
 ```text
 ~/.config/tide-island/userconfig.json
 ```
+
+引导程序会创建完整 JSON。大多数配置项使用默认值；`wallpaperPath` 和 `tlpSudoPassword` 依赖本机环境，所以由引导程序交互填写。
 
 修改配置后，重启服务：
 

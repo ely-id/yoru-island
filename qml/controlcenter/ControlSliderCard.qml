@@ -1,4 +1,5 @@
 import QtQuick
+import IslandBackend
 
 Rectangle {
     id: root
@@ -14,11 +15,11 @@ Rectangle {
     property string textFontFamily: ""
     property real value: 0
     property real knobSize: 24
-    property color moduleColor: "#1c1c1e"
-    property color moduleHover: "#232326"
-    property color trackColor: "#2c2c2e"
-    property color textPrimary: "#f5f5f7"
-    property color textSecondary: "#8e8e93"
+    property color moduleColor: StyleTokens.module
+    property color moduleHover: StyleTokens.moduleHover
+    property color trackColor: StyleTokens.track
+    property color textPrimary: StyleTokens.textPrimary
+    property color textSecondary: StyleTokens.textSecondary
     readonly property bool pressed: sliderArea.pressed
 
     function clamp01(nextValue) {
@@ -30,7 +31,7 @@ Rectangle {
 
     Behavior on color {
         ColorAnimation {
-            duration: 130
+            duration: StyleTokens.durationControl
         }
     }
 
@@ -65,7 +66,7 @@ Rectangle {
                 width: 18
                 height: 18
                 radius: 9
-                color: "transparent"
+                color: StyleTokens.transparent
 
                 Text {
                     anchors.centerIn: parent
@@ -82,7 +83,7 @@ Rectangle {
                     : Math.max(34, Math.min(sliderTrack.width, sliderTrack.width * root.value + 1))
                 height: parent.height
                 radius: parent.radius
-                color: "#f5f5f7"
+                color: StyleTokens.textPrimary
             }
 
             Rectangle {
@@ -91,7 +92,7 @@ Rectangle {
                 width: root.knobSize
                 height: root.knobSize
                 radius: root.knobSize / 2
-                color: "#ffffff"
+                color: StyleTokens.white
             }
 
             MouseArea {

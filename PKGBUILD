@@ -19,7 +19,6 @@ depends=(
     'upower'
     'bluez'
     'bluez-utils'
-    'python'
     'quickshell'
 )
 makedepends=('cmake')

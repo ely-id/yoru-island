@@ -1,4 +1,5 @@
 import QtQuick
+import IslandBackend
 
 Rectangle {
     id: root
@@ -25,12 +26,12 @@ Rectangle {
         : (hasProvider && provider.bluetoothDeviceSubtitle
             ? provider.bluetoothDeviceSubtitle(device)
             : "")
-    readonly property color iconColor: section === "available" ? "#7f828a" : "#0a84ff"
+    readonly property color iconColor: section === "available" ? StyleTokens.textTertiary : StyleTokens.accent
 
     width: parent ? parent.width : 0
     height: 52
     radius: 14
-    color: "transparent"
+    color: StyleTokens.transparent
     clip: true
 
     MouseArea {
@@ -65,7 +66,7 @@ Rectangle {
             text: root.hasProvider && root.provider.bluetoothDeviceName
                 ? root.provider.bluetoothDeviceName(root.device)
                 : ""
-            color: "#f5f5f7"
+            color: StyleTokens.textPrimary
             font.pixelSize: 12
             font.family: root.textFontFamily
             font.weight: Font.DemiBold
@@ -79,7 +80,7 @@ Rectangle {
             anchors.right: actionLabel.left
             anchors.rightMargin: 8
             text: root.subtitleText
-            color: "#9b9da4"
+            color: StyleTokens.textMuted
             font.pixelSize: 10
             font.family: root.textFontFamily
             elide: Text.ElideRight
@@ -91,7 +92,7 @@ Rectangle {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             text: root.actionText
-            color: root.section === "connected" ? "#34c759" : "#f5f5f7"
+            color: root.section === "connected" ? StyleTokens.success : StyleTokens.textPrimary
             font.pixelSize: root.section === "connected" ? 18 : 11
             font.family: root.textFontFamily
             font.weight: Font.DemiBold

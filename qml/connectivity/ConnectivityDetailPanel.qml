@@ -1,4 +1,5 @@
 import QtQuick
+import IslandBackend
 
 Item {
     id: root
@@ -81,7 +82,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: 28
-        color: "#1c1c1e"
+        color: StyleTokens.module
         opacity: 0.9
     }
 
@@ -108,7 +109,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.isWifi ? "Wi-Fi" : "Bluetooth"
-                color: "#f5f5f7"
+                color: StyleTokens.textPrimary
                 font.pixelSize: 15
                 font.family: root.heroFontFamily
                 font.weight: Font.Bold
@@ -127,7 +128,7 @@ Item {
                 width: parent.width
                 height: visible ? 64 : 0
                 radius: 16
-                color: "transparent"
+                color: StyleTokens.transparent
                 visible: root.isWifi && root.provider && root.provider.wifiEnabled && root.provider.wifiCurrentSsid.length > 0
 
                 MouseArea {
@@ -150,7 +151,7 @@ Item {
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                         text: root.provider ? root.provider.wifiGlyph : ""
-                        color: "#0a84ff"
+                        color: StyleTokens.accent
                         font.pixelSize: 16
                         font.family: root.iconFontFamily
                     }
@@ -162,7 +163,7 @@ Item {
                         anchors.right: parent.right
                         anchors.rightMargin: 24
                         text: root.provider ? root.provider.wifiCurrentSsid : ""
-                        color: "#f5f5f7"
+                        color: StyleTokens.textPrimary
                         font.pixelSize: 12
                         font.family: root.textFontFamily
                         font.weight: Font.DemiBold
@@ -174,7 +175,7 @@ Item {
                         anchors.leftMargin: 28
                         anchors.bottom: parent.bottom
                         text: "Connected"
-                        color: "#9da0a8"
+                        color: StyleTokens.textSoft
                         font.pixelSize: 11
                         font.family: root.textFontFamily
                     }
@@ -183,7 +184,7 @@ Item {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         text: "✓"
-                        color: "#34c759"
+                        color: StyleTokens.success
                         font.pixelSize: 18
                         font.family: root.textFontFamily
                         font.weight: Font.DemiBold
@@ -195,7 +196,7 @@ Item {
                 width: parent.width
                 visible: root.provider && root.provider.wifiAvailabilityMessage.length > 0 && root.isWifi
                 text: root.provider ? root.provider.wifiAvailabilityMessage : ""
-                color: "#9b9da4"
+                color: StyleTokens.textMuted
                 font.pixelSize: 11
                 font.family: root.textFontFamily
                 wrapMode: Text.Wrap
@@ -205,7 +206,7 @@ Item {
                 width: parent.width
                 visible: root.provider && root.provider.wifiInfoMessage.length > 0 && root.isWifi
                 text: root.provider ? root.provider.wifiInfoMessage : ""
-                color: "#6ea8ff"
+                color: StyleTokens.accentSoft
                 font.pixelSize: 11
                 font.family: root.textFontFamily
                 wrapMode: Text.Wrap
@@ -215,7 +216,7 @@ Item {
                 width: parent.width
                 visible: root.provider && root.provider.wifiError.length > 0 && root.isWifi
                 text: root.provider ? root.provider.wifiError : ""
-                color: "#ff7c72"
+                color: StyleTokens.error
                 font.pixelSize: 11
                 font.family: root.textFontFamily
                 wrapMode: Text.Wrap
@@ -225,7 +226,7 @@ Item {
                 width: parent.width
                 visible: root.provider && root.provider.bluetoothAvailabilityMessage.length > 0 && root.isBluetooth
                 text: root.provider ? root.provider.bluetoothAvailabilityMessage : ""
-                color: "#9b9da4"
+                color: StyleTokens.textMuted
                 font.pixelSize: 11
                 font.family: root.textFontFamily
                 wrapMode: Text.Wrap
@@ -235,7 +236,7 @@ Item {
                 width: parent.width
                 visible: root.provider && root.provider.bluetoothInfoMessage.length > 0 && root.isBluetooth
                 text: root.provider ? root.provider.bluetoothInfoMessage : ""
-                color: "#6ea8ff"
+                color: StyleTokens.accentSoft
                 font.pixelSize: 11
                 font.family: root.textFontFamily
                 wrapMode: Text.Wrap
@@ -245,7 +246,7 @@ Item {
                 width: parent.width
                 visible: root.provider && root.provider.bluetoothError.length > 0 && root.isBluetooth
                 text: root.provider ? root.provider.bluetoothError : ""
-                color: "#ff7c72"
+                color: StyleTokens.error
                 font.pixelSize: 11
                 font.family: root.textFontFamily
                 wrapMode: Text.Wrap
@@ -260,7 +261,7 @@ Item {
                         : ((root.provider && root.provider.bluetoothPairingRequiresConfirmation) ? 110 : 82))
                     : 0
                 radius: 16
-                color: "#323236"
+                color: StyleTokens.prompt
                 visible: root.isBluetooth && root.provider && root.provider.bluetoothPairingActive
                 clip: true
 
@@ -282,7 +283,7 @@ Item {
                         Text {
                             width: parent.width
                             text: root.provider ? root.provider.bluetoothPairingTitle : ""
-                            color: "#f5f5f7"
+                            color: StyleTokens.textPrimary
                             font.pixelSize: 12
                             font.family: root.textFontFamily
                             font.weight: Font.DemiBold
@@ -315,8 +316,8 @@ Item {
                                 : 0
                             height: 34
                             radius: 12
-                            color: "#212226"
-                            border.color: "#3f4046"
+                            color: StyleTokens.input
+                            border.color: StyleTokens.inputBorder
                             border.width: 1
                             visible: root.provider && root.provider.bluetoothPairingRequiresInput
 
@@ -327,7 +328,7 @@ Item {
                                 text: root.provider && root.provider.bluetoothPairingNumericInput
                                     ? "Passkey"
                                     : "PIN"
-                                color: "#7f828a"
+                                color: StyleTokens.textTertiary
                                 font.pixelSize: 11
                                 font.family: root.textFontFamily
                                 visible: bluetoothSecretField.text.length === 0 && !bluetoothSecretField.activeFocus
@@ -341,7 +342,7 @@ Item {
                                 anchors.leftMargin: 12
                                 anchors.rightMargin: 12
                                 height: Math.min(parent.height - 8, implicitHeight + 2)
-                                color: "#f5f5f7"
+                                color: StyleTokens.textPrimary
                                 font.pixelSize: 11
                                 font.family: root.textFontFamily
                                 verticalAlignment: TextInput.AlignVCenter
@@ -373,14 +374,14 @@ Item {
                             width: root.provider && root.provider.bluetoothPairingRequiresInput ? 50 : 76
                             height: 34
                             radius: 12
-                            color: "#0a84ff"
+                            color: StyleTokens.accent
 
                             Text {
                                 anchors.centerIn: parent
                                 text: root.provider && root.provider.bluetoothPairingRequiresConfirmation
                                     ? "Confirm"
                                     : "Pair"
-                                color: "#ffffff"
+                                color: StyleTokens.white
                                 font.pixelSize: 11
                                 font.family: root.textFontFamily
                                 font.weight: Font.DemiBold
@@ -405,12 +406,12 @@ Item {
                             width: 58
                             height: 34
                             radius: 12
-                            color: "#4a4b50"
+                            color: StyleTokens.secondaryButton
 
                             Text {
                                 anchors.centerIn: parent
                                 text: "Cancel"
-                                color: "#f5f5f7"
+                                color: StyleTokens.textPrimary
                                 font.pixelSize: 11
                                 font.family: root.textFontFamily
                                 font.weight: Font.DemiBold
@@ -433,7 +434,7 @@ Item {
                 width: parent.width
                 height: visible ? 92 : 0
                 radius: 16
-                color: "#323236"
+                color: StyleTokens.prompt
                 visible: root.isWifi && root.provider && root.provider.wifiPendingPasswordSsid.length > 0
                 clip: true
 
@@ -451,7 +452,7 @@ Item {
                         anchors.top: parent.top
                         anchors.right: parent.right
                         text: "Enter password for " + (root.provider ? root.provider.wifiPendingPasswordSsid : "")
-                        color: "#f5f5f7"
+                        color: StyleTokens.textPrimary
                         font.pixelSize: 12
                         font.family: root.textFontFamily
                         font.weight: Font.DemiBold
@@ -465,8 +466,8 @@ Item {
                         anchors.bottom: parent.bottom
                         height: 34
                         radius: 12
-                        color: "#212226"
-                        border.color: "#3f4046"
+                        color: StyleTokens.input
+                        border.color: StyleTokens.inputBorder
                         border.width: 1
 
                         Text {
@@ -474,7 +475,7 @@ Item {
                             anchors.leftMargin: 12
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Password"
-                            color: "#7f828a"
+                            color: StyleTokens.textTertiary
                             font.pixelSize: 11
                             font.family: root.textFontFamily
                             visible: root.provider && root.provider.wifiPendingPasswordValue.length === 0 && !wifiPasswordField.activeFocus
@@ -488,7 +489,7 @@ Item {
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
                             height: Math.min(parent.height - 8, implicitHeight + 2)
-                            color: "#f5f5f7"
+                            color: StyleTokens.textPrimary
                             font.pixelSize: 11
                             font.family: root.textFontFamily
                             echoMode: TextInput.Password
@@ -520,12 +521,12 @@ Item {
                         width: 50
                         height: 34
                         radius: 12
-                        color: "#0a84ff"
+                        color: StyleTokens.accent
 
                         Text {
                             anchors.centerIn: parent
                             text: "Join"
-                            color: "#ffffff"
+                            color: StyleTokens.white
                             font.pixelSize: 11
                             font.family: root.textFontFamily
                             font.weight: Font.DemiBold
@@ -547,12 +548,12 @@ Item {
                         width: 50
                         height: 34
                         radius: 12
-                        color: "#4a4b50"
+                        color: StyleTokens.secondaryButton
 
                         Text {
                             anchors.centerIn: parent
                             text: "Cancel"
-                            color: "#f5f5f7"
+                            color: StyleTokens.textPrimary
                             font.pixelSize: 11
                             font.family: root.textFontFamily
                             font.weight: Font.DemiBold
@@ -593,7 +594,7 @@ Item {
                         && root.provider.wifiAvailable
                         && !root.provider.wifiEnabled
                     text: "Turn on Wi-Fi to see nearby networks."
-                    color: "#9b9da4"
+                    color: StyleTokens.textMuted
                     font.pixelSize: 12
                     font.family: root.textFontFamily
                     wrapMode: Text.Wrap
@@ -603,7 +604,7 @@ Item {
                     width: parent.width
                     visible: root.isWifi && root.provider && root.provider.wifiListRunning
                     text: "Scanning nearby networks..."
-                    color: "#9b9da4"
+                    color: StyleTokens.textMuted
                     font.pixelSize: 12
                     font.family: root.textFontFamily
                 }
@@ -615,7 +616,7 @@ Item {
                         width: contentColumn.width
                         height: visible ? 52 : 0
                         radius: 14
-                        color: "transparent"
+                        color: StyleTokens.transparent
                         visible: root.wifiEntryVisible(connected)
                         clip: true
 
@@ -646,7 +647,7 @@ Item {
                                 anchors.left: parent.left
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: root.provider ? root.provider.wifiGlyph : ""
-                                color: connected ? "#0a84ff" : "#868991"
+                                color: connected ? StyleTokens.accent : StyleTokens.disabledControl
                                 font.pixelSize: 14
                                 font.family: root.iconFontFamily
                             }
@@ -658,7 +659,7 @@ Item {
                                 anchors.right: rightInfo.left
                                 anchors.rightMargin: 8
                                 text: displayName
-                                color: "#f5f5f7"
+                                color: StyleTokens.textPrimary
                                 font.pixelSize: 12
                                 font.family: root.textFontFamily
                                 font.weight: Font.DemiBold
@@ -672,7 +673,7 @@ Item {
                                 anchors.right: rightInfo.left
                                 anchors.rightMargin: 8
                                 text: secure ? "Secure network" : "Open network"
-                                color: "#9b9da4"
+                                color: StyleTokens.textMuted
                                 font.pixelSize: 10
                                 font.family: root.textFontFamily
                                 elide: Text.ElideRight
@@ -694,7 +695,7 @@ Item {
 
                                 Text {
                                     text: ""
-                                    color: "#8f9198"
+                                    color: StyleTokens.textSubtle
                                     font.pixelSize: 11
                                     font.family: root.iconFontFamily
                                     visible: secure
@@ -708,7 +709,7 @@ Item {
                     width: parent.width
                     visible: root.isBluetooth && root.provider && root.provider.bluetoothAvailable && !root.provider.bluetoothEnabled
                     text: "Turn on Bluetooth to see nearby devices."
-                    color: "#9b9da4"
+                    color: StyleTokens.textMuted
                     font.pixelSize: 12
                     font.family: root.textFontFamily
                     wrapMode: Text.Wrap
@@ -720,7 +721,7 @@ Item {
                         && root.provider.bluetoothEnabled
                         && root.bluetoothScanning
                     text: "Scanning nearby devices..."
-                    color: "#9b9da4"
+                    color: StyleTokens.textMuted
                     font.pixelSize: 12
                     font.family: root.textFontFamily
                 }
