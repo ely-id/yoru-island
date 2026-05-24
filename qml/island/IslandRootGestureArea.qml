@@ -30,7 +30,7 @@ MouseArea {
 
         accumulatedDelta += effectiveDelta * 0.8;
 
-        const nextProgress = islandController.advanceSideSwipeProgress(swipeStartProgress, -accumulatedDelta);
+        const nextProgress = islandController.advanceSideSwipeProgress(swipeStartProgress, accumulatedDelta);
         islandController.swipeTransitionProgress = nextProgress;
         capsule.displayedWidth = capsule.sideSwipePreviewWidth;
 

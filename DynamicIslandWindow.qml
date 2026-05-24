@@ -1357,15 +1357,9 @@ PanelWindow {
                         (touchPoints[0].y + touchPoints[1].y) / 2);
                     
                     const deltaX = centerPoint.x - swipeStartX;
-                    // User requested: Swipe Left (deltaX < 0) -> Lyrics (pos progress)
-                    //                 Swipe Right (deltaX > 0) -> Custom (neg progress)
-                    // The advanceSideSwipeProgress function expects Pos deltaX for Pos progress.
-                    // So we invert deltaX to match the user's requested directions.
-                    const logicalDeltaX = -deltaX;
-                    
                     const nextProgress = islandContainer.advanceSideSwipeProgress(
                         swipeStartProgress,
-                        logicalDeltaX
+                        deltaX
                     );
 
                     if (Math.abs(nextProgress - swipeStartProgress) > 0.03) {

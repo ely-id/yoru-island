@@ -105,8 +105,8 @@ It's built with Quickshell, QML, and C++/Qt 6. Most of the effort went into maki
 | -------------------------------------- | --------------------------------------------- |
 | Left click                             | Open music player                             |
 | Right click                            | Open control center                           |
-| Swipe left                             | Show lyrics                                   |
-| Swipe right                            | Show custom page                              |
+| Swipe left                             | Show custom page                              |
+| Swipe right                            | Show lyrics                                   |
 | Two-finger horizontal / vertical swipe | Switch between time, lyrics, and custom views |
 | `Super + Tab`                          | Open workspace overview                       |
 

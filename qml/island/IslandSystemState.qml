@@ -83,6 +83,22 @@ Item {
         return String(rawId === undefined || rawId === null ? "" : rawId).trim().toLowerCase();
     }
 
+    function listValues(rawItems) {
+        if (!rawItems)
+            return [];
+        if (Array.isArray(rawItems))
+            return rawItems;
+
+        const length = Number(rawItems.length);
+        if (!isFinite(length) || length < 0)
+            return [];
+
+        const resolved = [];
+        for (let index = 0; index < Math.floor(length); index++)
+            resolved.push(rawItems[index]);
+        return resolved;
+    }
+
     function formatPercentText(value) {
         return Math.round(Math.max(0, value) * 100) + "%";
     }
@@ -114,7 +130,7 @@ Item {
     }
 
     function buildNormalizedSwipeItemIds(rawItems) {
-        const source = Array.isArray(rawItems) ? rawItems : [];
+        const source = listValues(rawItems);
         const resolved = [];
         const seen = {};
 
@@ -182,7 +198,7 @@ Item {
     }
 
     function buildCustomSwipeItems(itemIds) {
-        const source = Array.isArray(itemIds) ? itemIds : [];
+        const source = listValues(itemIds);
         const resolved = [];
 
         for (let index = 0; index < source.length; index++) {
@@ -197,7 +213,7 @@ Item {
     }
 
     function customSwipeItemsSignature(items) {
-        const source = Array.isArray(items) ? items : [];
+        const source = listValues(items);
         let signature = "";
 
         for (let index = 0; index < source.length; index++) {
