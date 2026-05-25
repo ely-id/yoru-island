@@ -87,6 +87,11 @@ QString userConfigPath()
     return configHome() + QStringLiteral("/") + configDirName + QStringLiteral("/") + configFileName;
 }
 
+bool userConfigExists()
+{
+    return QFileInfo::exists(userConfigPath());
+}
+
 QString setupLockPath()
 {
     return configHome() + QStringLiteral("/") + configDirName + QStringLiteral("/") + setupLockFileName;
@@ -542,17 +547,6 @@ bool setupLockActive()
     return true;
 }
 
-bool setupInitialPending()
-{
-    const QJsonObject data = readSetupLock();
-    if (!data.value(QStringLiteral("initialSetup")).toBool(false))
-        return false;
-
-    const qint64 createdAt = static_cast<qint64>(data.value(QStringLiteral("createdAt")).toDouble(0));
-    const qint64 now = QDateTime::currentSecsSinceEpoch();
-    return createdAt > 0 && (now - createdAt) <= setupLockMaxAgeSeconds;
-}
-
 bool writeSetupLock(qint64 pid, bool initialSetup = false)
 {
     const QString path = setupLockPath();
@@ -862,7 +856,7 @@ QStringList terminalCommand(QStringList base)
 
 int launchWizard()
 {
-    const bool initialSetup = !QFileInfo::exists(userConfigPath()) || setupInitialPending();
+    const bool initialSetup = !userConfigExists();
     QJsonObject normalized;
     const QStringList missing = missingItems(&normalized);
     if (missing.isEmpty()) {
@@ -871,12 +865,13 @@ int launchWizard()
     }
 
     saveUserConfig(normalized);
+    if (!initialSetup)
+        return 0;
 
     if (setupLockActive())
         return 0;
 
-    if (initialSetup)
-        writeSetupLock(QCoreApplication::applicationPid(), true);
+    writeSetupLock(QCoreApplication::applicationPid(), true);
 
     QList<QStringList> candidates;
     const QString terminal = envString("TERMINAL");
@@ -912,7 +907,7 @@ int launchWizard()
 
 int runWizard()
 {
-    const bool initialSetup = !QFileInfo::exists(userConfigPath())
+    const bool initialSetup = !userConfigExists()
         || readSetupLock().value(QStringLiteral("initialSetup")).toBool(false);
     writeSetupLock(QCoreApplication::applicationPid(), initialSetup);
     QJsonObject data;
@@ -977,10 +972,11 @@ int main(int argc, char **argv)
 
     const QString arg = args.first();
     if (arg == QStringLiteral("--check")) {
-        const bool initialSetup = !QFileInfo::exists(userConfigPath());
+        const bool initialSetup = !userConfigExists();
         QJsonObject normalized;
         const QStringList missing = missingItems(&normalized);
-        saveUserConfig(normalized);
+        if (!initialSetup)
+            saveUserConfig(normalized);
         if (initialSetup && !missing.isEmpty())
             writeSetupLock(QCoreApplication::applicationPid(), true);
         printCheck(missing);
