@@ -27,12 +27,14 @@ Rectangle {
     }
 
     radius: 24
-    color: sliderArea.containsMouse ? moduleHover : moduleColor
+    color: StyleTokens.clearBlack
+    clip: true
 
-    Behavior on color {
-        ColorAnimation {
-            duration: StyleTokens.durationControl
-        }
+    GlassSurface {
+        anchors.fill: parent
+        radius: root.radius
+        hovered: sliderArea.containsMouse
+        pressed: sliderArea.pressed
     }
 
     Item {
@@ -56,8 +58,16 @@ Rectangle {
             anchors.bottom: parent.bottom
             height: 22
             radius: 11
-            color: root.trackColor
+            color: StyleTokens.clearBlack
             clip: true
+
+            GlassSurface {
+                anchors.fill: parent
+                radius: sliderTrack.radius
+                hovered: sliderArea.containsMouse
+                pressed: sliderArea.pressed
+                opacity: 0.24
+            }
 
             Rectangle {
                 anchors.left: parent.left
@@ -83,7 +93,17 @@ Rectangle {
                     : Math.max(34, Math.min(sliderTrack.width, sliderTrack.width * root.value + 1))
                 height: parent.height
                 radius: parent.radius
-                color: StyleTokens.textPrimary
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop {
+                        position: 0.0
+                        color: "#f7f8fb"
+                    }
+                    GradientStop {
+                        position: 1.0
+                        color: "#d9dbe0"
+                    }
+                }
             }
 
             Rectangle {
@@ -92,7 +112,18 @@ Rectangle {
                 width: root.knobSize
                 height: root.knobSize
                 radius: root.knobSize / 2
-                color: StyleTokens.white
+                border.width: 1
+                border.color: "#88ffffff"
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0.0
+                        color: "#ffffff"
+                    }
+                    GradientStop {
+                        position: 1.0
+                        color: "#d9dbe0"
+                    }
+                }
             }
 
             MouseArea {

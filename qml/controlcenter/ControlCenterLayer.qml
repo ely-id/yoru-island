@@ -1284,12 +1284,13 @@ Item {
                     width: (connectivityCardsRow.width - connectivityCardsRow.spacing) / 2
                     height: connectivityCardsRow.height
                     radius: 20
-                    color: (wifiCardMouse.containsMouse || wifiPanelOpen) ? StyleTokens.connectivityCardHover : StyleTokens.connectivityCard
+                    color: StyleTokens.clearBlack
+                    clip: true
 
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: StyleTokens.durationFast
-                        }
+                    GlassSurface {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        hovered: wifiCardMouse.containsMouse || wifiPanelOpen
                     }
 
                     MouseArea {
@@ -1409,12 +1410,13 @@ Item {
                     width: (connectivityCardsRow.width - connectivityCardsRow.spacing) / 2
                     height: connectivityCardsRow.height
                     radius: 20
-                    color: (bluetoothCardMouse.containsMouse || bluetoothPanelOpen) ? StyleTokens.connectivityCardHover : StyleTokens.connectivityCard
+                    color: StyleTokens.clearBlack
+                    clip: true
 
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: StyleTokens.durationFast
-                        }
+                    GlassSurface {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        hovered: bluetoothCardMouse.containsMouse || bluetoothPanelOpen
                     }
 
                     MouseArea {
@@ -1550,9 +1552,15 @@ Item {
                 width: batteryDrawer.cardWidth
                 height: controlCenter.batteryModeCardHeight
                 radius: 20
-                color: StyleTokens.connectivityCard
+                color: StyleTokens.clearBlack
                 opacity: Math.min(1, controlCenter.batteryDrawerProgress * 1.35)
                 clip: true
+
+                GlassSurface {
+                    anchors.fill: parent
+                    radius: parent.radius
+                    hovered: controlCenter.batteryModeSliderDragging
+                }
 
                 Text {
                     anchors.left: parent.left
@@ -1738,44 +1746,44 @@ Item {
                 }
             }
 
-            Item {
-                id: roundToggleGroup
-                readonly property real contentWidth: controlCenter.roundToggleButtonSize * 2
-                    + controlCenter.roundToggleButtonGap
-
+            Rectangle {
+                id: quickTogglesCard
                 x: batteryDrawer.cardWidth + connectivityCardsRow.spacing
-                    + (batteryDrawer.cardWidth - contentWidth) / 2
-                y: batteryModeCard.y + (batteryModeCard.height - height) / 2
-                width: contentWidth
-                height: controlCenter.roundToggleButtonSize
+                y: batteryModeCard.y
+                width: batteryDrawer.cardWidth
+                height: controlCenter.batteryModeCardHeight
+                radius: 20
+                color: StyleTokens.clearBlack
                 opacity: Math.min(1, controlCenter.batteryDrawerProgress * 1.35)
+                clip: true
+                readonly property real toggleIconTop: 12
+                readonly property real toggleIconBoxHeight: 32
+                readonly property real toggleLabelTop: 55
+
+                GlassSurface {
+                    anchors.fill: parent
+                    radius: parent.radius
+                    hovered: focusButtonMouse.containsMouse || nightLightButtonMouse.containsMouse
+                    pressed: focusButtonMouse.pressed || nightLightButtonMouse.pressed
+                }
 
                 Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 1
+                    height: parent.height - 34
+                    radius: 1
+                    color: "#1cffffff"
+                }
+
+                Item {
                     id: focusButton
                     anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: controlCenter.roundToggleButtonSize
-                    height: controlCenter.roundToggleButtonSize
-                    radius: width / 2
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: parent.width / 2
                     property real slashProgress: controlCenter.focusEnabled ? 1 : 0
-                    property color iconColor: controlCenter.focusEnabled ? StyleTokens.white : StyleTokens.textDisabled
-                    color: controlCenter.focusEnabled
-                        ? StyleTokens.accent
-                        : (focusButtonMouse.containsMouse ? StyleTokens.connectivityCardHover : StyleTokens.connectivityCard)
-                    clip: true
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: StyleTokens.durationFast
-                        }
-                    }
-
-                    Behavior on scale {
-                        NumberAnimation {
-                            duration: 120
-                            easing.type: Easing.OutCubic
-                        }
-                    }
+                    property color iconColor: controlCenter.focusEnabled ? StyleTokens.textPrimaryBright : "#c8cad1"
 
                     Behavior on slashProgress {
                         NumberAnimation {
@@ -1784,7 +1792,18 @@ Item {
                         }
                     }
 
-                    scale: focusButtonMouse.pressed ? 0.94 : 1.0
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        radius: 16
+                        color: focusButtonMouse.containsMouse ? "#08ffffff" : StyleTokens.clearBlack
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: StyleTokens.durationFast
+                            }
+                        }
+                    }
 
                     MouseArea {
                         id: focusButtonMouse
@@ -1794,71 +1813,82 @@ Item {
                         onClicked: controlCenter.toggleFocus()
                     }
 
-                    Shape {
-                        anchors.centerIn: parent
-                        width: 26
-                        height: 26
+                    Item {
+                        id: focusIconSlot
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: quickTogglesCard.toggleIconTop
+                        width: parent.width
+                        height: quickTogglesCard.toggleIconBoxHeight
+
+                        Shape {
+                            id: focusIcon
+                            anchors.centerIn: parent
+                            width: 24
+                            height: 24
+                            scale: focusButtonMouse.pressed ? 0.94 : 1.0
+                            opacity: controlCenter.focusBusy ? 0.5 : 1.0
+                            preferredRendererType: Shape.CurveRenderer
+
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: 120
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+
+                            ShapePath {
+                                fillColor: StyleTokens.transparent
+                                strokeColor: focusButton.iconColor
+                                strokeWidth: 2
+                                capStyle: ShapePath.RoundCap
+                                joinStyle: ShapePath.RoundJoin
+
+                                PathSvg {
+                                    path: "M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"
+                                }
+                            }
+
+                            ShapePath {
+                                fillColor: StyleTokens.transparent
+                                strokeColor: focusButton.iconColor
+                                strokeWidth: 2.1
+                                capStyle: ShapePath.RoundCap
+                                joinStyle: ShapePath.RoundJoin
+
+                                PathMove {
+                                    x: 1
+                                    y: 1
+                                }
+
+                                PathLine {
+                                    x: 1 + 22 * focusButton.slashProgress
+                                    y: 1 + 22 * focusButton.slashProgress
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: quickTogglesCard.toggleLabelTop
+                        width: parent.width
+                        text: "Silent"
+                        color: controlCenter.focusEnabled ? StyleTokens.textPrimaryBright : StyleTokens.textMuted
+                        horizontalAlignment: Text.AlignHCenter
+                        font.pixelSize: 10
+                        font.family: textFontFamily
+                        font.weight: Font.Medium
+                        elide: Text.ElideRight
                         opacity: controlCenter.focusBusy ? 0.5 : 1.0
-                        preferredRendererType: Shape.CurveRenderer
-
-                        ShapePath {
-                            fillColor: StyleTokens.transparent
-                            strokeColor: focusButton.iconColor
-                            strokeWidth: 2
-                            capStyle: ShapePath.RoundCap
-                            joinStyle: ShapePath.RoundJoin
-
-                            PathSvg {
-                                path: "M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"
-                            }
-                        }
-
-                        ShapePath {
-                            fillColor: StyleTokens.transparent
-                            strokeColor: focusButton.iconColor
-                            strokeWidth: 2.1
-                            capStyle: ShapePath.RoundCap
-                            joinStyle: ShapePath.RoundJoin
-
-                            PathMove {
-                                x: 1
-                                y: 1
-                            }
-
-                            PathLine {
-                                x: 1 + 22 * focusButton.slashProgress
-                                y: 1 + 22 * focusButton.slashProgress
-                            }
-                        }
                     }
                 }
 
-                Rectangle {
+                Item {
                     id: nightLightButton
                     anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: controlCenter.roundToggleButtonSize
-                    height: controlCenter.roundToggleButtonSize
-                    radius: width / 2
-                    color: controlCenter.nightLightEnabled
-                        ? StyleTokens.warning
-                        : (nightLightButtonMouse.containsMouse ? StyleTokens.connectivityCardHover : StyleTokens.connectivityCard)
-                    clip: true
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: StyleTokens.durationFast
-                        }
-                    }
-
-                    Behavior on scale {
-                        NumberAnimation {
-                            duration: 120
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-
-                    scale: nightLightButtonMouse.pressed ? 0.94 : 1.0
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: parent.width / 2
 
                     MouseArea {
                         id: nightLightButtonMouse
@@ -1868,12 +1898,67 @@ Item {
                         onClicked: controlCenter.toggleNightLight()
                     }
 
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        radius: 16
+                        color: nightLightButtonMouse.containsMouse ? "#08ffffff" : StyleTokens.clearBlack
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: StyleTokens.durationFast
+                            }
+                        }
+                    }
+
+                    Item {
+                        id: nightLightIconSlot
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: quickTogglesCard.toggleIconTop
+                        width: parent.width
+                        height: quickTogglesCard.toggleIconBoxHeight
+
+                        Text {
+                            anchors.centerIn: parent
+                            anchors.verticalCenterOffset: 1
+                            text: controlCenter.nightLightGlyph
+                            color: "#45000000"
+                            font.pixelSize: 29
+                            font.family: iconFontFamily
+                            scale: nightLightButtonMouse.pressed ? 0.94 : 1.0
+                            opacity: controlCenter.nightLightBusy ? 0.1 : 0.22
+                        }
+
+                        Text {
+                            id: nightLightIcon
+                            anchors.centerIn: parent
+                            text: controlCenter.nightLightGlyph
+                            color: controlCenter.nightLightEnabled ? StyleTokens.textPrimaryBright : "#c8cad1"
+                            font.pixelSize: 29
+                            font.family: iconFontFamily
+                            scale: nightLightButtonMouse.pressed ? 0.94 : 1.0
+                            opacity: controlCenter.nightLightBusy ? 0.5 : 1.0
+
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: 120
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+                        }
+                    }
+
                     Text {
-                        anchors.centerIn: parent
-                        text: controlCenter.nightLightGlyph
-                        color: controlCenter.nightLightEnabled ? StyleTokens.white : StyleTokens.textDisabled
-                        font.pixelSize: 25
-                        font.family: iconFontFamily
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: quickTogglesCard.toggleLabelTop
+                        width: parent.width
+                        text: "Night mode"
+                        color: controlCenter.nightLightEnabled ? StyleTokens.textPrimaryBright : StyleTokens.textMuted
+                        horizontalAlignment: Text.AlignHCenter
+                        font.pixelSize: 10
+                        font.family: textFontFamily
+                        font.weight: Font.Medium
+                        elide: Text.ElideRight
                         opacity: controlCenter.nightLightBusy ? 0.5 : 1.0
                     }
                 }
