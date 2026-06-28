@@ -12,7 +12,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: root.radius
-        color: root.hovered ? "#55575c" : "#47494d"
+        color: root.hovered ? "#484a4f" : "#3b3d42"
     }
 
     Rectangle {
@@ -42,11 +42,11 @@ Item {
         gradient: Gradient {
             GradientStop {
                 position: 0.0
-                color: root.hovered ? "#12ffffff" : "#0dffffff"
+                color: root.hovered ? "#0bffffff" : "#06ffffff"
             }
             GradientStop {
                 position: 0.06
-                color: root.hovered ? "#07ffffff" : "#05ffffff"
+                color: root.hovered ? "#04ffffff" : "#02ffffff"
             }
             GradientStop {
                 position: 0.13
@@ -65,7 +65,7 @@ Item {
         radius: root.innerRadius
         color: StyleTokens.transparent
         border.width: 1
-        border.color: root.hovered ? "#18ffffff" : "#10ffffff"
+        border.color: root.hovered ? "#0fffffff" : "#08ffffff"
     }
 
     Rectangle {
