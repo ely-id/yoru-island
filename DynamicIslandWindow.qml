@@ -480,6 +480,9 @@ PanelWindow {
         property int timerRemainingSeconds: 0
         property bool timerRunning: false
         property bool timerActive: false
+        property bool timerCompletionAnimating: false
+        property real timerCompletionPulse: 0
+        property real timerCompletionFlash: 0
         readonly property int defaultAutoHideInterval: 1250
         readonly property int notificationAutoHideInterval: 4200
         readonly property int bluetoothExpandedAutoHideInterval: 2500
@@ -487,8 +490,7 @@ PanelWindow {
         readonly property real timerProgress: timerActive && timerTotalSeconds > 0
             ? Math.max(0, Math.min(1, timerRemainingSeconds / timerTotalSeconds))
             : 0
-        readonly property bool timerBubbleWanted: timerActive
-            && timerRemainingSeconds > 0
+        readonly property bool timerBubbleWanted: (timerActive && timerRemainingSeconds > 0 || timerCompletionAnimating)
             && !root.overviewVisible
             && (islandState === "normal" || islandState === "lyrics" || islandState === "custom")
         readonly property bool blocksTransientSplit: islandState === "expanded"
@@ -972,6 +974,7 @@ PanelWindow {
         }
 
         function syncTimerDuration(hours, minutes) {
+            cancelTimerCompletionAnimation();
             timerSelectedHours = clampTimerInput(hours, 0, 23);
             timerSelectedMinutes = clampTimerInput(minutes, 0, 59);
             timerTotalSeconds = timerSelectedHours * 3600 + timerSelectedMinutes * 60;
@@ -981,6 +984,9 @@ PanelWindow {
         }
 
         function toggleTimer(hours, minutes) {
+            if (timerCompletionAnimating)
+                cancelTimerCompletionAnimation();
+
             if (timerRunning) {
                 timerRunning = false;
                 return;
@@ -997,9 +1003,22 @@ PanelWindow {
         }
 
         function resetTimer() {
+            cancelTimerCompletionAnimation();
             timerRemainingSeconds = 0;
             timerRunning = false;
             timerActive = false;
+        }
+
+        function startTimerCompletionAnimation() {
+            timerCompletionPulse = 0;
+            timerCompletionFlash = 0;
+            timerCompletionAnimating = true;
+        }
+
+        function cancelTimerCompletionAnimation() {
+            timerCompletionAnimating = false;
+            timerCompletionPulse = 0;
+            timerCompletionFlash = 0;
         }
 
         function showExpandedTimerPage() {
@@ -1176,10 +1195,14 @@ PanelWindow {
             repeat: true
             running: islandContainer.timerRunning
             onTriggered: {
-                islandContainer.timerRemainingSeconds = Math.max(0, islandContainer.timerRemainingSeconds - 1);
-                if (islandContainer.timerRemainingSeconds <= 0) {
+                const nextRemainingSeconds = Math.max(0, islandContainer.timerRemainingSeconds - 1);
+                if (nextRemainingSeconds <= 0) {
+                    islandContainer.startTimerCompletionAnimation();
+                    islandContainer.timerRemainingSeconds = 0;
                     islandContainer.timerRunning = false;
                     islandContainer.timerActive = false;
+                } else {
+                    islandContainer.timerRemainingSeconds = nextRemainingSeconds;
                 }
             }
         }
@@ -1973,7 +1996,7 @@ PanelWindow {
             z: 6
             visible: mounted
             opacity: reveal
-            scale: 0.55 + reveal * 0.45
+            scale: (0.55 + reveal * 0.45) * (1 + islandContainer.timerCompletionPulse * 0.12)
             transformOrigin: Item.Center
 
             Connections {
@@ -2000,6 +2023,14 @@ PanelWindow {
                 }
 
                 function onTimerTotalSecondsChanged() {
+                    timerBubbleRing.requestPaint();
+                }
+
+                function onTimerCompletionAnimatingChanged() {
+                    timerBubbleRing.requestPaint();
+                }
+
+                function onTimerCompletionFlashChanged() {
                     timerBubbleRing.requestPaint();
                 }
             }
@@ -2030,19 +2061,83 @@ PanelWindow {
                 }
             }
 
+            SequentialAnimation {
+                id: timerBubbleCompletionAnimation
+
+                running: islandContainer.timerCompletionAnimating
+
+                onStarted: {
+                    timerBubbleShowAnimation.stop();
+                    timerBubbleHideAnimation.stop();
+                    timerBubble.mounted = true;
+                    timerBubble.reveal = 1;
+                }
+
+                onStopped: {
+                    if (islandContainer.timerCompletionAnimating)
+                        islandContainer.timerCompletionAnimating = false;
+                    islandContainer.timerCompletionPulse = 0;
+                    islandContainer.timerCompletionFlash = 0;
+                    timerBubbleRing.requestPaint();
+                }
+
+                ParallelAnimation {
+                    NumberAnimation {
+                        target: islandContainer
+                        property: "timerCompletionPulse"
+                        from: 0
+                        to: 1
+                        duration: 140
+                        easing.type: Easing.OutCubic
+                    }
+
+                    NumberAnimation {
+                        target: islandContainer
+                        property: "timerCompletionFlash"
+                        from: 0
+                        to: 1
+                        duration: 140
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                ParallelAnimation {
+                    NumberAnimation {
+                        target: islandContainer
+                        property: "timerCompletionPulse"
+                        from: 1
+                        to: 0
+                        duration: 380
+                        easing.type: Easing.OutCubic
+                    }
+
+                    NumberAnimation {
+                        target: islandContainer
+                        property: "timerCompletionFlash"
+                        from: 1
+                        to: 0
+                        duration: 380
+                        easing.type: Easing.InOutQuad
+                    }
+                }
+
+                PauseAnimation {
+                    duration: 380
+                }
+            }
+
             Rectangle {
                 anchors.fill: parent
+                anchors.margins: 2
                 radius: width / 2
                 color: StyleTokens.black
-                border.width: 1
-                border.color: "#34343a"
             }
 
             Canvas {
                 id: timerBubbleRing
 
                 anchors.fill: parent
-                anchors.margins: 3
+                anchors.margins: 1
 
                 Component.onCompleted: requestPaint()
                 onVisibleChanged: requestPaint()
@@ -2053,7 +2148,9 @@ PanelWindow {
                     const ctx = getContext("2d");
                     const centerX = width / 2;
                     const centerY = height / 2;
-                    const lineWidth = 3;
+                    const completionActive = islandContainer.timerCompletionAnimating;
+                    const flash = Math.max(0, Math.min(1, islandContainer.timerCompletionFlash));
+                    const lineWidth = completionActive ? 3 + flash : 3;
                     const radius = Math.min(width, height) / 2 - lineWidth / 2;
                     const progress = Math.max(0, Math.min(1, islandContainer.timerProgress));
                     const startAngle = -Math.PI / 2;
@@ -2068,7 +2165,21 @@ PanelWindow {
                     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
                     ctx.stroke();
 
-                    if (progress > 0) {
+                    if (completionActive) {
+                        if (flash > 0) {
+                            ctx.beginPath();
+                            ctx.lineWidth = lineWidth + 1.5;
+                            ctx.strokeStyle = "rgba(255, 204, 0, " + (0.18 * flash) + ")";
+                            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+
+                        ctx.beginPath();
+                        ctx.lineWidth = lineWidth;
+                        ctx.strokeStyle = "rgba(255, 204, 0, " + (0.72 + 0.28 * flash) + ")";
+                        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                        ctx.stroke();
+                    } else if (progress > 0) {
                         ctx.beginPath();
                         ctx.strokeStyle = "#ffcc00";
                         ctx.arc(centerX, centerY, radius, startAngle, endAngle, true);
@@ -2079,6 +2190,7 @@ PanelWindow {
 
             Text {
                 anchors.centerIn: parent
+                anchors.horizontalCenterOffset: -1
                 text: "󰔛"
                 color: "white"
                 font.pixelSize: root.iconFontSize - 1

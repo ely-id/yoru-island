@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import Theme 1.0
+import TideIsland 1.0
 
 ApplicationWindow {
     id: window
@@ -17,7 +17,7 @@ ApplicationWindow {
         height: parent.height - 60
         width:2
         color: Theme.splitLineColor
-        x: Theme.animationDuration
+        x: 180
         y: 30
 
         DragHandler {
@@ -25,7 +25,7 @@ ApplicationWindow {
             xAxis.enabled: true
             yAxis.enabled: false
             xAxis.minimum: 50
-            xAxis.maximum: 250
+            xAxis.maximum: 20
         }
 
         MouseArea{
@@ -45,8 +45,8 @@ ApplicationWindow {
             y: 80
             color: Theme.textColor
             text: tideIslandText.width > mainSplitLine.x ? "T" : "Tide Island"
-            font.pixelSize: 25
-            font.family: Theme.fontFamily
+            font.pixelSize: 23
+            font.family: Theme.titleFontFamily
 
             TextMetrics {
                 id: tideIslandText
@@ -71,8 +71,8 @@ ApplicationWindow {
             y: 300
             color: currentPage === 1 ? Theme.selectedColor : Theme.textColor
             text: islandButtonText.width > mainSplitLine.x ? "G" : "General"
-            font.family: Theme.fontFamily
-            font.pixelSize: 25
+            font.family: Theme.titleFontFamily
+            font.pixelSize: 23
 
             TextMetrics {
                 id: islandButtonText
@@ -87,6 +87,7 @@ ApplicationWindow {
 
                 onClicked: {
                     currentPage = 1
+                    generalPage.showPage()
                 }
             }
         }
@@ -94,11 +95,11 @@ ApplicationWindow {
         Text{
             id: shortcutButton
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 350
+            y: 360
             color: currentPage === 2 ? Theme.selectedColor : Theme.textColor
             text: shortcutButtonText.width > mainSplitLine.x ? "S" : "Shortcut"
-            font.family: Theme.fontFamily
-            font.pixelSize: 25
+            font.family: Theme.titleFontFamily
+            font.pixelSize: 23
 
             TextMetrics {
                 id: shortcutButtonText
@@ -120,11 +121,11 @@ ApplicationWindow {
         Text{
             id: interactionButton
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 400
-            color: currentPage === 2 ? Theme.selectedColor : Theme.textColor
+            y: 420
+            color: currentPage === 3 ? Theme.selectedColor : Theme.textColor
             text: interactionButtonText.width > mainSplitLine.x ? "I" : "Interaction"
-            font.family: Theme.fontFamily
-            font.pixelSize: 25
+            font.family: Theme.titleFontFamily
+            font.pixelSize: 23
 
             TextMetrics {
                 id: interactionButtonText
@@ -138,7 +139,33 @@ ApplicationWindow {
                 anchors.fill:parent
 
                 onClicked: {
-                    currentPage = 2
+                    currentPage = 3
+                }
+            }
+        }
+
+        Text{
+            id: documentButton 
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 490
+            color: currentPage === 4 ? Theme.selectedColor : Theme.textColor
+            text: documentButtonText.width > mainSplitLine.x ? "D" : "Document"
+            font.family: Theme.titleFontFamily
+            font.pixelSize: 23
+
+            TextMetrics {
+                id: documentButtonText
+                font:interactionButton.font
+                text: "Document"
+            }
+
+            Behavior on color {ColorAnimation{ duration:Theme.animationDuration}}
+
+            MouseArea{
+                anchors.fill:parent
+
+                onClicked: {
+                    currentPage = 4
                 }
             }
         }
@@ -153,5 +180,28 @@ ApplicationWindow {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
 
+        General{
+            id: generalPage           
+            anchors.fill:parent
+            visible: currentPage === 1
+        }
+
+        Shortcut {
+            id: shortcutPage
+            anchors.fill: parent
+            visible: currentPage === 2
+        }
+
+        Interaction {
+            id: interactionPage
+            anchors.fill: parent
+            visible: currentPage === 3
+        }
+
+        Document {
+            id: documentPage
+            anchors.fill: parent
+            visible: currentPage === 4
+        }
     }
 }

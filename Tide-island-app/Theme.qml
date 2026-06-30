@@ -26,8 +26,17 @@ QtObject {
 
     readonly property int animationDuration: 180
 
-    readonly property string fontFamily: font.status === FontLoader.Ready ? font.name : "Sans Serif"
-    readonly property FontLoader font: FontLoader {
+    readonly property string textFontFamily: textFont.status === FontLoader.Ready ? textFont.name : "Inter"
+    readonly property string titleFontFamily: titleFont.status === FontLoader.Ready ? titleFont.name : "Serif"
+    readonly property string interFontFamily: textFontFamily
+    readonly property string loraFontFamily: titleFontFamily
+    readonly property string fontFamily: textFontFamily
+
+    readonly property FontLoader textFont: FontLoader {
+        source: "qrc:/RES/InterVariable.ttf"
+    }
+
+    readonly property FontLoader titleFont: FontLoader {
         source: "qrc:/RES/Lora-Regular.ttf"
     }
 }
