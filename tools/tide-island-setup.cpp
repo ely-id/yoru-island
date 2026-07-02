@@ -292,8 +292,6 @@ QJsonObject defaultUserConfig()
         {QStringLiteral("timeFontFamily"), QStringLiteral("Inter Display")},
         {QString::fromLatin1(tlpSudoPasswordKey), QString()},
         {QString::fromLatin1(tlpPermissionModeKey), QString()},
-        {QStringLiteral("overviewGlobalShortcutAppid"), QStringLiteral("quickshell")},
-        {QStringLiteral("overviewGlobalShortcutName"), QStringLiteral("dynamic-island-overview")},
         {QString::fromLatin1(hyprlandBindModeKey), QString()},
         {QStringLiteral("workspaceOverviewWindowDragButton"), 1},
         {QStringLiteral("dynamicIslandPrimaryButton"), 1},
@@ -500,12 +498,6 @@ QString formatUserConfig(const QJsonObject &data)
          "    // ===========================================================================\n"
          "    //  WORKSPACE OVERVIEW\n"
          "    // ===========================================================================\n"
-         "\n"
-         "    // Quickshell app-id for the global shortcut.\n"
-         "    \"overviewGlobalShortcutAppid\": \"" << str("overviewGlobalShortcutAppid", "quickshell") << "\",\n"
-         "\n"
-         "    // Quickshell shortcut name (registered as SUPER+TAB in Hyprland).\n"
-         "    \"overviewGlobalShortcutName\": \"" << str("overviewGlobalShortcutName", "dynamic-island-overview") << "\",\n"
          "\n"
          "    // Shortcut setup mode used by tide-island-setup.\n"
          "    // Leave empty to let setup offer missing shortcuts.\n"

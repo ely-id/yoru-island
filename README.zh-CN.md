@@ -258,8 +258,6 @@ tide-island-setup --shortcuts
 | `timeFontFamily` | 时间显示字体 | string | `"Inter Display"` |
 | `tlpPermissionMode` | TLP 省电模式切换的提权方式 | string | `"ask"` |
 | `tlpSudoPassword` | `tlpPermissionMode` 为 `"password"` 时使用的 sudo 密码 | string | `""` |
-| `overviewGlobalShortcutAppid` | 工作区概览全局快捷键的 App ID | string | `"quickshell"` |
-| `overviewGlobalShortcutName` | 工作区概览全局快捷键名称 | string | `"dynamic-island-overview"` |
 | `hyprlandBindMode` | setup 快捷键引导状态，设为 `"manual"` 时不再提示自动写入 | string | `""` |
 | `workspaceOverviewWindowDragButton` | 工作区概览中拖拽窗口的鼠标按键 | int | `1`（左键） |
 | `dynamicIslandPrimaryButton` | 点击灵动岛胶囊的主鼠标按键 | int | `1`（左键） |

@@ -1,6 +1,7 @@
 import QtQuick
 import IslandBackend
 import Quickshell.Services.Mpris
+import "../controlcenter"
 
 Item {
     id: root
@@ -717,7 +718,7 @@ Item {
                         ctx.lineWidth = lineWidth;
 
                         ctx.beginPath();
-                        ctx.strokeStyle = "#303036";
+                        ctx.strokeStyle = "#2b2e35";
                         ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
                         ctx.stroke();
 
@@ -743,7 +744,7 @@ Item {
             }
 
             Column {
-                width: parent.width - 134
+                width: parent.width - 173
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 10
 
@@ -797,7 +798,7 @@ Item {
                     TimerButton {
                         width: (parent.width - 8) / 2
                         height: parent.height
-                        label: timerRoot.timerRunning ? "停止" : (timerRoot.timerActive && timerRoot.timerRemainingSeconds < timerRoot.timerTotalSeconds && timerRoot.timerRemainingSeconds > 0 ? "继续" : "开始")
+                        label: timerRoot.timerRunning ? "Stop" : (timerRoot.timerActive && timerRoot.timerRemainingSeconds < timerRoot.timerTotalSeconds && timerRoot.timerRemainingSeconds > 0 ? "Continue" : "Start")
                         enabled: timerRoot.timerRunning || timerRoot.canStart
                         accent: true
                         textFontFamily: timerRoot.textFontFamily
@@ -808,7 +809,7 @@ Item {
                     TimerButton {
                         width: (parent.width - 8) / 2
                         height: parent.height
-                        label: "重置"
+                        label: "Reset"
                         textFontFamily: timerRoot.textFontFamily
                         onClicked: timerRoot.resetTimer()
                         onPressed: timerRoot.controlPressed()
@@ -851,24 +852,32 @@ Item {
             }
         }
 
-        Rectangle {
+        Item {
             anchors.fill: parent
-            radius: 10
-            color: input.activeFocus ? "#242428" : "#1c1c1f"
-            border.width: 1
-            border.color: input.activeFocus ? "#ff9f0a" : "#34343a"
 
-            Behavior on color {
-                ColorAnimation {
-                    duration: 140
-                    easing.type: Easing.InOutQuad
-                }
+            MatteSurface {
+                anchors.fill: parent
+                radius: 10
+                hovered: input.activeFocus || inputMouseArea.containsMouse
+                pressed: inputMouseArea.pressed
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: 9
+                color: StyleTokens.transparent
+                border.width: 1
+                border.color: input.activeFocus ? "#ff9f0a" : "#2b2e35"
             }
 
             MouseArea {
+                id: inputMouseArea
+
                 anchors.fill: parent
                 z: 2
                 acceptedButtons: Qt.LeftButton
+                hoverEnabled: true
                 preventStealing: true
                 onPressed: (mouse) => {
                     inputRoot.grabKeyboardFocus();
@@ -889,7 +898,7 @@ Item {
 
                     width: 42
                     property bool sanitizing: false
-                    color: "#ffffff"
+                    color: "#f5f5f7"
                     selectionColor: "#ff9f0a"
                     selectedTextColor: "#111111"
                     font.pixelSize: UserConfig.bodyFontSize + 2
@@ -921,7 +930,7 @@ Item {
 
                 Text {
                     text: inputRoot.label
-                    color: "#8e8e93"
+                    color: "#9b9da4"
                     font.pixelSize: UserConfig.bodyFontSize - 3
                     font.family: inputRoot.textFontFamily
                     font.weight: Font.Medium
@@ -950,16 +959,32 @@ Item {
             }
         }
 
-        Rectangle {
+        Item {
             anchors.fill: parent
-            radius: 10
-            color: buttonRoot.accent ? (buttonArea.pressed ? "#d98500" : "#ff9f0a") : (buttonArea.pressed ? "#34343a" : "#242428")
+
+            MatteSurface {
+                anchors.fill: parent
+                radius: 10
+                hovered: buttonArea.containsMouse
+                pressed: buttonArea.pressed
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: 9
+                color: buttonRoot.accent
+                    ? (buttonArea.pressed ? "#d98500" : "#ff9f0a")
+                    : StyleTokens.transparent
+                border.width: 1
+                border.color: buttonRoot.accent ? "#ff9f0a" : "#2b2e35"
+            }
         }
 
         Text {
             anchors.centerIn: parent
             text: buttonRoot.label
-            color: buttonRoot.accent ? "#111111" : "#ffffff"
+            color: buttonRoot.accent ? "#111111" : "#f5f5f7"
             font.pixelSize: UserConfig.bodyFontSize - 2
             font.family: buttonRoot.textFontFamily
             font.weight: Font.DemiBold
@@ -970,6 +995,7 @@ Item {
 
             anchors.fill: parent
             enabled: buttonRoot.enabled
+            hoverEnabled: true
             preventStealing: true
             onPressed: (mouse) => {
                 buttonRoot.pressed();

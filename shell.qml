@@ -130,8 +130,8 @@ Scope {
     }
 
     GlobalShortcut {
-        appid: userConfig.overviewGlobalShortcutAppid
-        name: userConfig.overviewGlobalShortcutName
+        appid: "quickshell"
+        name: "dynamic-island-overview"
 
         onPressed: shellRoot.toggleOverviewAll()
     }

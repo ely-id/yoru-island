@@ -30,7 +30,7 @@ Rectangle {
     color: StyleTokens.clearBlack
     clip: true
 
-    GlassSurface {
+    MatteSurface {
         anchors.fill: parent
         radius: root.radius
         hovered: sliderArea.containsMouse
@@ -58,9 +58,9 @@ Rectangle {
             anchors.bottom: parent.bottom
             height: 22
             radius: 11
-            color: "#26272b"
+            color: "#1d1f24"
             border.width: 1
-            border.color: "#34363a"
+            border.color: "#30333a"
             clip: true
 
             Rectangle {
@@ -87,17 +87,7 @@ Rectangle {
                     : Math.max(34, Math.min(sliderTrack.width, sliderTrack.width * root.value + 1))
                 height: parent.height
                 radius: parent.radius
-                gradient: Gradient {
-                    orientation: Gradient.Horizontal
-                    GradientStop {
-                        position: 0.0
-                        color: "#f4f5f7"
-                    }
-                    GradientStop {
-                        position: 1.0
-                        color: "#d8d9dd"
-                    }
-                }
+                color: "#eceef2"
             }
 
             Rectangle {
@@ -107,17 +97,8 @@ Rectangle {
                 height: root.knobSize
                 radius: root.knobSize / 2
                 border.width: 1
-                border.color: "#66ffffff"
-                gradient: Gradient {
-                    GradientStop {
-                        position: 0.0
-                        color: "#f6f7f9"
-                    }
-                    GradientStop {
-                        position: 1.0
-                        color: "#dedfe3"
-                    }
-                }
+                border.color: "#b8ffffff"
+                color: "#f4f5f7"
             }
 
             MouseArea {

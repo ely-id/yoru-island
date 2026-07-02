@@ -160,16 +160,6 @@ QString UserConfigBackend::tlpPermissionMode() const
     return m_tlpPermissionMode;
 }
 
-QString UserConfigBackend::overviewGlobalShortcutAppid() const
-{
-    return m_overviewGlobalShortcutAppid;
-}
-
-QString UserConfigBackend::overviewGlobalShortcutName() const
-{
-    return m_overviewGlobalShortcutName;
-}
-
 int UserConfigBackend::workspaceOverviewWindowDragButton() const
 {
     return m_workspaceOverviewWindowDragButton;
@@ -352,8 +342,6 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_timeFontFamily, jsonString(configObject, QLatin1String("timeFontFamily"), QStringLiteral("Inter Display")), &UserConfigBackend::timeFontFamilyChanged);
     updateField(this, m_tlpSudoPassword, jsonString(configObject, QLatin1String("tlpSudoPassword"), m_defaultTlpSudoPassword), &UserConfigBackend::tlpSudoPasswordChanged);
     updateField(this, m_tlpPermissionMode, jsonString(configObject, QLatin1String("tlpPermissionMode"), QStringLiteral("ask")), &UserConfigBackend::tlpPermissionModeChanged);
-    updateField(this, m_overviewGlobalShortcutAppid, jsonString(configObject, QLatin1String("overviewGlobalShortcutAppid"), QStringLiteral("quickshell")), &UserConfigBackend::overviewGlobalShortcutAppidChanged);
-    updateField(this, m_overviewGlobalShortcutName, jsonString(configObject, QLatin1String("overviewGlobalShortcutName"), QStringLiteral("dynamic-island-overview")), &UserConfigBackend::overviewGlobalShortcutNameChanged);
     updateField(this, m_workspaceOverviewWindowDragButton, jsonInt(configObject, QLatin1String("workspaceOverviewWindowDragButton"), 1), &UserConfigBackend::workspaceOverviewWindowDragButtonChanged);
     updateField(this, m_dynamicIslandPrimaryButton, jsonInt(configObject, QLatin1String("dynamicIslandPrimaryButton"), 1), &UserConfigBackend::dynamicIslandPrimaryButtonChanged);
     updateField(this, m_dynamicIslandPrimaryAction, jsonString(configObject, QLatin1String("dynamicIslandPrimaryAction"), QStringLiteral("toggleExpandedPlayer")), &UserConfigBackend::dynamicIslandPrimaryActionChanged);

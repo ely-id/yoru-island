@@ -25,9 +25,6 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(QString tlpSudoPassword READ tlpSudoPassword NOTIFY tlpSudoPasswordChanged FINAL)
     Q_PROPERTY(QString tlpPermissionMode READ tlpPermissionMode NOTIFY tlpPermissionModeChanged FINAL)
 
-    Q_PROPERTY(QString overviewGlobalShortcutAppid READ overviewGlobalShortcutAppid NOTIFY overviewGlobalShortcutAppidChanged FINAL)
-    Q_PROPERTY(QString overviewGlobalShortcutName READ overviewGlobalShortcutName NOTIFY overviewGlobalShortcutNameChanged FINAL)
-
     Q_PROPERTY(int workspaceOverviewWindowDragButton READ workspaceOverviewWindowDragButton NOTIFY workspaceOverviewWindowDragButtonChanged FINAL)
 
     Q_PROPERTY(int dynamicIslandPrimaryButton READ dynamicIslandPrimaryButton NOTIFY dynamicIslandPrimaryButtonChanged FINAL)
@@ -61,8 +58,6 @@ public:
     QString timeFontFamily() const;
     QString tlpSudoPassword() const;
     QString tlpPermissionMode() const;
-    QString overviewGlobalShortcutAppid() const;
-    QString overviewGlobalShortcutName() const;
     int workspaceOverviewWindowDragButton() const;
     int dynamicIslandPrimaryButton() const;
     QString dynamicIslandPrimaryAction() const;
@@ -97,8 +92,6 @@ signals:
     void timeFontFamilyChanged();
     void tlpSudoPasswordChanged();
     void tlpPermissionModeChanged();
-    void overviewGlobalShortcutAppidChanged();
-    void overviewGlobalShortcutNameChanged();
     void workspaceOverviewWindowDragButtonChanged();
     void dynamicIslandPrimaryButtonChanged();
     void dynamicIslandPrimaryActionChanged();
@@ -133,8 +126,6 @@ private:
     QString m_timeFontFamily = QStringLiteral("Inter Display");
     QString m_tlpSudoPassword;
     QString m_tlpPermissionMode = QStringLiteral("ask");
-    QString m_overviewGlobalShortcutAppid = QStringLiteral("quickshell");
-    QString m_overviewGlobalShortcutName = QStringLiteral("dynamic-island-overview");
     int m_workspaceOverviewWindowDragButton = 1;
     int m_dynamicIslandPrimaryButton = 1;
     QString m_dynamicIslandPrimaryAction = QStringLiteral("toggleExpandedPlayer");

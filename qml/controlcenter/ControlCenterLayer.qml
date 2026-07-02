@@ -1287,7 +1287,7 @@ Item {
                     color: StyleTokens.clearBlack
                     clip: true
 
-                    GlassSurface {
+                    MatteSurface {
                         anchors.fill: parent
                         radius: parent.radius
                         hovered: wifiCardMouse.containsMouse || wifiPanelOpen
@@ -1413,7 +1413,7 @@ Item {
                     color: StyleTokens.clearBlack
                     clip: true
 
-                    GlassSurface {
+                    MatteSurface {
                         anchors.fill: parent
                         radius: parent.radius
                         hovered: bluetoothCardMouse.containsMouse || bluetoothPanelOpen
@@ -1556,7 +1556,7 @@ Item {
                 opacity: Math.min(1, controlCenter.batteryDrawerProgress * 1.35)
                 clip: true
 
-                GlassSurface {
+                MatteSurface {
                     anchors.fill: parent
                     radius: parent.radius
                     hovered: controlCenter.batteryModeSliderDragging
@@ -1760,7 +1760,7 @@ Item {
                 readonly property real toggleIconBoxHeight: 32
                 readonly property real toggleLabelTop: 55
 
-                GlassSurface {
+                MatteSurface {
                     anchors.fill: parent
                     radius: parent.radius
                     hovered: focusButtonMouse.containsMouse || nightLightButtonMouse.containsMouse
