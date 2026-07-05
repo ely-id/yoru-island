@@ -127,6 +127,10 @@ Scope {
         function toggleWallpaperPicker() {
             shellRoot.forFocusedWindow((window) => window.toggleWallpaperPickerWindow());
         }
+
+        function toggleSessionMenu() {
+            shellRoot.forFocusedWindow((window) => window.toggleSessionMenuWindow());
+        }
     }
 
     GlobalShortcut {

@@ -67,7 +67,7 @@ PanelWindow {
             width: Math.ceil(mainCapsule.width)
             height: Math.ceil(mainCapsule.height)
         }
-        
+
         // Add existing detail shells
         Region {
             intersection: Intersection.Combine
@@ -306,6 +306,13 @@ PanelWindow {
             islandContainer.showControlCenter();
     }
 
+    function toggleSessionMenuWindow() {
+        if (islandContainer.islandState === "session_menu")
+            islandContainer.smartRestoreState();
+        else
+            islandContainer.showSessionMenu();
+    }
+
     function toggleWallpaperPickerWindow() {
         if (islandContainer.islandState === "wallpaper_picker")
             islandContainer.smartRestoreState();
@@ -499,6 +506,7 @@ PanelWindow {
             || islandState === "control_center"
             || islandState === "notification"
             || islandState === "wallpaper_picker"
+            || islandState === "session_menu"
         readonly property bool splitShowsProgress: islandState === "split" && osdProgress >= 0
         readonly property bool splitShowsText: islandState === "split" && osdProgress < 0 && osdCustomText !== ""
         readonly property bool splitShowsIconOnly: islandState === "split" && osdProgress < 0 && osdCustomText === ""
@@ -540,6 +548,7 @@ PanelWindow {
         readonly property bool notificationLayerVisible: !root.overviewVisible && islandState === "notification"
         readonly property bool controlCenterLayerVisible: !root.overviewVisible && islandState === "control_center"
         readonly property bool wallpaperPickerLayerVisible: !root.overviewVisible && islandState === "wallpaper_picker"
+        readonly property bool sessionMenuLayerVisible: !root.overviewVisible && islandState === "session_menu"
         onWallpaperPickerLayerVisibleChanged: {
             if (wallpaperPickerLayerVisible) {
                 wallpaperPickerFocusTimer.restart();
@@ -1052,7 +1061,7 @@ PanelWindow {
         }
 
         function showNotificationCapsule(appName, summary, body) {
-            if (root.overviewVisible || islandState === "control_center" || islandState === "expanded") return;
+            if (root.overviewVisible || islandState === "control_center" || islandState === "expanded" || islandState === "session_menu") return;
 
             const cleanedAppName = cleanNotificationText(appName);
             const cleanedSummary = cleanNotificationText(summary);
@@ -1146,6 +1155,16 @@ PanelWindow {
             clearTransientCapsule();
             islandState = "control_center";
             mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
+            stopAutoHideTimer();
+        }
+
+        function showSessionMenu() {
+            cancelSideSwipeSettle();
+            abortSideTransientMode();
+            clearTransientCapsule();
+            islandState = "session_menu";
+            mainCapsule.displayedWidth = mainCapsule.baseTargetWidth;
+            expandedByPlayerAutoOpen = false;
             stopAutoHideTimer();
         }
 
@@ -1319,6 +1338,8 @@ PanelWindow {
                     return islandContainer.customCapsuleWidth;
                 case "lyrics":
                     return islandContainer.lyricsCapsuleWidth;
+                case "session_menu":
+                    return 360;
                 case "control_center":
                     return 420;
                 case "wallpaper_picker":
@@ -1340,6 +1361,8 @@ PanelWindow {
                 if (root.overviewVisible) return root.overviewCapsuleHeight;
 
                 switch (islandContainer.islandState) {
+                case "session_menu":
+                    return 120;
                 case "control_center":
                     return 320 + (controlCenterLoader.item ? controlCenterLoader.item.controlCenterExtraHeight : 32);
                 case "wallpaper_picker":
@@ -1359,6 +1382,8 @@ PanelWindow {
                 if (root.overviewVisible) return root.overviewCapsuleRadius;
 
                 switch (islandContainer.islandState) {
+                case "session_menu":
+                    return 34;
                 case "control_center":
                     return 34;
                 case "wallpaper_picker":
@@ -1372,38 +1397,29 @@ PanelWindow {
                     return userConfig.islandHeight / 2;
                 }
 	    }
-	    // Ativa a forma com "mordida" em todos os estados normais da ilha.
-	    // Mantém o visual original durante overview, para não quebrar essa tela.
+		// Canto em cima
 	    readonly property bool useNotchShape: !root.overviewVisible
-	    // Cor real do fundo da ilha.
-	    // O Rectangle principal ficará transparente quando o Shape estiver ativo.
 	    readonly property color notchFillColor: root.overviewContentVisible
     		 ? root.overviewCapsuleColor
     		 : StyleTokens.black
-		 
-	    // Quanto a lateral da ilha entra para dentro.
-	    // Isso controla a largura útil dos painéis.
-	    // 8 foi o ponto que ficou bom no seu teste.
+
 	    readonly property real notchSideInset: useNotchShape ? 6 : 0
 
- 	    // Profundidade visual da mordida.
-	    // Pode ser maior que notchSideInset sem apertar os painéis.
-	    // Teste 12, 14 ou 16.
 	    readonly property real notchBiteDepth: useNotchShape
     		? Math.min(12, height / 2)
     		: 0
 	    // Alcance extra da curva.
-	    // Isso não reduz a largura útil do painel; só suaviza a entrada da mordida.
+	    // Teste que funcionou pra deixar o curva mais redondinha
 	    readonly property real notchCurveReach: useNotchShape ? 0 : 0
-	    
-	    // Compensação lateral real.
-	    // A largura extra deve seguir o inset lateral, não a profundidade visual.
+
+
 	    readonly property real notchSideAllowance: notchSideInset * 2
-	    
-	    // Teto do raio inferior.
-	    // Reduzir esse valor deixa a base menos "bolha" nos painéis grandes.
+
+	    // Raio inferior
 	    readonly property real notchBottomRadiusCap: {
 		switch (islandContainer.islandState) {
+		case "session_menu":
+		    return 18;
     		case "control_center":
 		    return 18;
 		case "wallpaper_picker":
@@ -1433,8 +1449,7 @@ PanelWindow {
 
 		return "M" + (-c) + ",0 "
 
-		    // Mordida superior esquerda.
-        	    // A curva nasce um pouco fora do bloco e entra suavemente.
+		        // Mordida superior esquerda.
         	    + "C" + (-c * 0.35) + ",0 "
         	    + i + "," + (d * 0.18) + " "
         	    + i + "," + d + " "
@@ -1472,14 +1487,14 @@ PanelWindow {
             }
             readonly property real sideSwipePreviewWidth: mainCapsule.sideSwipeWidthForProgress(
                 islandContainer.swipeTransitionProgress
-            )	    
-	    color: (useNotchShape || root.overviewContentVisible) ? "transparent" : notchFillColor	    
-	    y: 0
+            )
+	    color: (useNotchShape || root.overviewContentVisible) ? "transparent" : notchFillColor
+	        y: 0
             x: parent ? parent.width * userConfig.islandPositionX / 100 - width / 2 : 0
             clip: true
             width: displayedWidth + notchSideAllowance
             height: targetHeight
-	    radius: targetRadius
+	        radius: targetRadius
 
             onBaseTargetWidthChanged: {
                 if (!capsuleMouseArea.sideSwipeInteractive && !islandContainer.sideSwipeSettling)
@@ -1725,7 +1740,7 @@ PanelWindow {
                 property bool swipeMoved: false
 
                 onPressed: (touchPoints) => {
-                    const centerPoint = islandContainer.mapFromItem(twoFingerTouchArea, 
+                    const centerPoint = islandContainer.mapFromItem(twoFingerTouchArea,
                         (touchPoints[0].x + touchPoints[1].x) / 2,
                         (touchPoints[0].y + touchPoints[1].y) / 2);
                     swipeStartX = centerPoint.x;
@@ -1735,10 +1750,10 @@ PanelWindow {
                 }
 
                 onUpdated: (touchPoints) => {
-                    const centerPoint = islandContainer.mapFromItem(twoFingerTouchArea, 
+                    const centerPoint = islandContainer.mapFromItem(twoFingerTouchArea,
                         (touchPoints[0].x + touchPoints[1].x) / 2,
                         (touchPoints[0].y + touchPoints[1].y) / 2);
-                    
+
                     const deltaX = centerPoint.x - swipeStartX;
                     const nextProgress = islandContainer.advanceSideSwipeProgress(
                         swipeStartProgress,
@@ -2054,6 +2069,24 @@ PanelWindow {
                         activeWallpaper: root.wallpaperPickerActiveWallpaper
                         showCondition: islandContainer.wallpaperPickerLayerVisible
                         onWallpaperApplied: () => root.wallpaperPickerActiveWallpaper = userConfig.wallpaperPath
+                        onCloseRequested: islandContainer.smartRestoreState()
+                    }
+                }
+            }
+
+            Loader {
+                id: sessionMenuLoader
+                anchors.fill: parent
+                active: islandContainer.sessionMenuLayerVisible
+                asynchronous: false
+                visible: active
+
+                sourceComponent: Component {
+                    SessionMenuLayer {
+                        iconFontFamily: root.iconFontFamily
+                        textFontFamily: root.textFontFamily
+                        showCondition: islandContainer.sessionMenuLayerVisible
+                        onControlPressed: islandContainer.suppressCapsuleClick()
                         onCloseRequested: islandContainer.smartRestoreState()
                     }
                 }
