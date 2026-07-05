@@ -32,11 +32,25 @@ PagePanel {
         contentWidth: width
         contentHeight: content.height
         boundsBehavior: Flickable.StopAtBounds
+        boundsMovement: Flickable.StopAtBounds
+        interactive: false
+
+        WheelHandler {
+            target: null
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+            onWheel: function(event) {
+                const rawDelta = event.pixelDelta.y !== 0 ? event.pixelDelta.y : event.angleDelta.y / 120 * 64
+                const maxY = Math.max(0, scroller.contentHeight - scroller.height)
+                scroller.contentY = Math.max(0, Math.min(maxY, scroller.contentY - rawDelta))
+                event.accepted = true
+            }
+        }
 
         Item {
             id: content
             width: scroller.width
-            height: apperance.y + apperance.height + 40
+            height: tlpPanel.y + tlpPanel.height + 40
 
             Text {
                 id: title
@@ -73,80 +87,132 @@ PagePanel {
                 anchors.leftMargin: 30
                 anchors.right: parent.right
                 anchors.rightMargin: 40
-                height: 225
+                height: apperanceColumn.implicitHeight + 36
 
-                ConfigRow {
-                    id: islandWidthRow
-                    title: "Island Width"
-                    description: "Width of island in clock mode"
-                    keyName: "islandWidth"
-                    fallbackText: "140"
-                    numeric: true
+                Column {
+                    id: apperanceColumn
+
                     anchors.top: parent.top
-                    anchors.topMargin: 15
+                    anchors.topMargin: 18
                     anchors.left: parent.left
-                    anchors.leftMargin: 30
+                    anchors.leftMargin: 18
                     anchors.right: parent.right
-                    anchors.rightMargin: 100
-                }
+                    anchors.rightMargin: 18
+                    spacing: 16
 
-                Rectangle {
-                    id: widthSplitLine
-                    height: 2
-                    anchors.top: islandWidthRow.bottom
-                    anchors.topMargin: 15
-                    anchors.left: parent.left
-                    anchors.leftMargin: 15
-                    anchors.right: parent.right
-                    anchors.rightMargin: 15
-                    color: Theme.splitLineColor
-                }
+                    ConfigRow {
+                        title: "Island Width"
+                        description: "Width of island in clock mode"
+                        keyName: "islandWidth"
+                        fallbackText: "140"
+                        numeric: true
+                        width: parent.width
+                    }
 
-                ConfigRow {
-                    id: islandHeightRow
-                    title: "Island Height"
-                    description: "Height of island in clock mode"
-                    keyName: "islandHeight"
-                    fallbackText: "38"
-                    numeric: true
-                    anchors.top: widthSplitLine.top
-                    anchors.topMargin: 15
-                    anchors.left: parent.left
-                    anchors.leftMargin: 30
-                    anchors.right: parent.right
-                    anchors.rightMargin: 100
-                }
+                    SplitLine { width: parent.width }
 
-                Rectangle {
-                    id: heightSplitLine
-                    height: 2
-                    anchors.top: islandHeightRow.bottom
-                    anchors.topMargin: 15
-                    anchors.left: parent.left
-                    anchors.leftMargin: 15
-                    anchors.right: parent.right
-                    anchors.rightMargin: 15
-                    color: Theme.splitLineColor
-                }
+                    ConfigRow {
+                        title: "Island Height"
+                        description: "Height of island in clock mode"
+                        keyName: "islandHeight"
+                        fallbackText: "38"
+                        numeric: true
+                        width: parent.width
+                    }
 
-                ConfigRow {
-                    title: "Island Position"
-                    description: "X position of island"
-                    keyName: "islandPositionX"
-                    fallbackText: "50"
-                    numeric: true
-                    minimumValue: 0
-                    maximumValue: 100
-                    anchors.top: heightSplitLine.top
-                    anchors.topMargin: 15
-                    anchors.left: parent.left
-                    anchors.leftMargin: 30
-                    anchors.right: parent.right
-                    anchors.rightMargin: 100
+                    SplitLine { width: parent.width }
+
+                    ConfigRow {
+                        title: "Island Position"
+                        description: "X position of island"
+                        keyName: "islandPositionX"
+                        fallbackText: "50"
+                        numeric: true
+                        minimumValue: 0
+                        maximumValue: 100
+                        width: parent.width
+                    }
                 }
             }
 
+            Text {
+                id: customPageTitle
+                text: "Custom Page"
+                anchors.top: apperance.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+            }
+
+            CustomPage {
+                id: customPagePanel
+                anchors.top: customPageTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: implicitHeight
+            }
+
+            Text {
+                id: wallpaperTitle
+                text: "Wallpaper"
+                anchors.top: customPagePanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+            }
+
+            Wallpaper {
+                id: wallpaperPanel
+                anchors.top: wallpaperTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: implicitHeight
+            }
+
+            Text {
+                id: tlpTitle
+                text: "TLP"
+                anchors.top: wallpaperPanel.bottom
+                anchors.topMargin: 34
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                font.family: Theme.titleFontFamily
+                font.pixelSize: 23
+            }
+
+            TlpSettings {
+                id: tlpPanel
+                anchors.top: tlpTitle.bottom
+                anchors.topMargin: 15
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                height: implicitHeight
+            }
+
         }
+    }
+
+    component SplitLine: Rectangle {
+        height: 2
+        color: Theme.splitLineColor
     }
 
     component ConfigRow: Item {
@@ -160,7 +226,7 @@ PagePanel {
         property int minimumValue: 1
         property int maximumValue: 1000
 
-        height: 47
+        height: 49
 
         Text {
             id: rowTitle
@@ -183,11 +249,10 @@ PagePanel {
 
         ConfigTextField {
             id: field
-            anchors.top: rowTitle.top
-            anchors.topMargin: 5
             anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
             width: row.numeric ? 100 : 230
-            height: 35
+            height: 36
             placeholderText: row.fallbackText
             inputMethodHints: row.numeric ? Qt.ImhDigitsOnly : Qt.ImhNone
             validator: row.numeric ? intValidator : null

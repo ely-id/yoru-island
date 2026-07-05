@@ -13,6 +13,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Qml
     Quick
     QuickControls2
+    QuickDialogs2
 )
 
 qt_add_executable(tide-island-config-app
@@ -27,6 +28,7 @@ target_link_libraries(tide-island-config-app PRIVATE
     Qt6::Qml
     Qt6::Quick
     Qt6::QuickControls2
+    Qt6::QuickDialogs2
 )
 
 set_source_files_properties(Theme.qml ConfigStore.qml PROPERTIES
@@ -44,6 +46,9 @@ qt_add_qml_module(tide-island-config-app
         PagePanel.qml
         ConfigTextField.qml
         General.qml
+        CustomPage.qml
+        Wallpaper.qml
+        TlpSettings.qml
         FontSettings.qml
         Document.qml
         Interaction.qml

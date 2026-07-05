@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QString>
 #include <QVariantMap>
+#include <QVariantList>
 
 #include <unordered_map>
 
@@ -26,11 +27,19 @@ public:
     QVariantMap userConfig() const;
 
     Q_INVOKABLE bool save(const QVariantMap &userConfig);
+    Q_INVOKABLE bool copyToClipboard(const QString &text);
+    Q_INVOKABLE QVariantList shortcutBindings() const;
+    Q_INVOKABLE bool applyShortcutBindings(const QVariantList &shortcutBindings);
 
 signals:
     void errorStringChanged();
 
 private:
+    QString hyprlandConfigPath() const;
+    QString managedShortcutConfigPath() const;
+    bool writeManagedShortcutConfig(const QVariantList &shortcutBindings);
+    bool ensureManagedShortcutSource();
+    bool reloadHyprland();
     void load();
     void setErrorString(const QString &errorString);
     QVariantMap toVariantMap() const;

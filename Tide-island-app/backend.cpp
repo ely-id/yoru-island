@@ -1,15 +1,97 @@
 #include "backend.hpp"
 
+#include <QClipboard>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QProcess>
 #include <QSaveFile>
 #include <QVariant>
+#include <QVariantList>
 
 namespace {
+constexpr auto shortcutBindingsKey = "shortcutBindings";
+constexpr auto hyprlandBindModeKey = "hyprlandBindMode";
+constexpr auto tideShortcutPrefix = "/usr/bin/quickshell ipc -p /usr/share/tide-island call ";
+
+struct ShortcutBinding {
+    QString mods;
+    QString key;
+    QString target;
+    QString method;
+};
+
+QVariantMap shortcutMap(const QString &mods, const QString &key, const QString &target, const QString &method)
+{
+    return {
+        {QStringLiteral("mods"), mods},
+        {QStringLiteral("key"), key},
+        {QStringLiteral("target"), target},
+        {QStringLiteral("method"), method},
+    };
+}
+
+QVariantList defaultShortcutBindings()
+{
+    return {
+        shortcutMap(QStringLiteral("SUPER"), QStringLiteral("TAB"), QStringLiteral("overview"), QStringLiteral("toggle")),
+        shortcutMap(QStringLiteral("SUPER"), QStringLiteral("right"), QStringLiteral("tide"), QStringLiteral("showLyrics")),
+        shortcutMap(QStringLiteral("SUPER"), QStringLiteral("left"), QStringLiteral("tide"), QStringLiteral("showCustom")),
+        shortcutMap(QStringLiteral("SUPER"), QStringLiteral("down"), QStringLiteral("tide"), QStringLiteral("showClock")),
+        shortcutMap(QStringLiteral("SUPER"), QStringLiteral("M"), QStringLiteral("tide"), QStringLiteral("togglePlayer")),
+        shortcutMap(QStringLiteral("SUPER"), QStringLiteral("C"), QStringLiteral("tide"), QStringLiteral("toggleControlCenter")),
+        shortcutMap(QStringLiteral("SUPER"), QStringLiteral("W"), QStringLiteral("tide"), QStringLiteral("toggleWallpaperPicker")),
+    };
+}
+
+QString cleanShortcutPart(const QVariant &value)
+{
+    QString text = value.toString().trimmed();
+    text.replace(u'\n', u' ');
+    text.replace(u'\r', u' ');
+    text.replace(u',', u' ');
+    return text.simplified();
+}
+
+ShortcutBinding bindingFromVariant(const QVariant &value)
+{
+    const QVariantMap map = value.toMap();
+    return {
+        cleanShortcutPart(map.value(QStringLiteral("mods"))),
+        cleanShortcutPart(map.value(QStringLiteral("key"))),
+        cleanShortcutPart(map.value(QStringLiteral("target"))),
+        cleanShortcutPart(map.value(QStringLiteral("method"))),
+    };
+}
+
+QVariantList normalizedShortcutBindings(const QVariantList &shortcutBindings)
+{
+    QVariantList normalized;
+    for (const QVariant &value : shortcutBindings) {
+        const ShortcutBinding binding = bindingFromVariant(value);
+        if (binding.key.isEmpty() || binding.target.isEmpty() || binding.method.isEmpty())
+            continue;
+
+        normalized.append(shortcutMap(binding.mods, binding.key, binding.target, binding.method));
+    }
+    return normalized;
+}
+
+QString shortcutCommand(const ShortcutBinding &binding)
+{
+    return QString::fromLatin1(tideShortcutPrefix) + binding.target + u' ' + binding.method;
+}
+
+QString hyprlandConfBindLine(const ShortcutBinding &binding)
+{
+    return QStringLiteral("bind = %1, %2, exec, %3")
+        .arg(binding.mods, binding.key, shortcutCommand(binding));
+}
+
 QByteArray stripJsonComments(const QByteArray &input){
     QByteArray output;
     output.reserve(input.size());
@@ -143,6 +225,178 @@ bool Backend::save(const QVariantMap &userConfig){
     setUserConfig(userConfig);
     setErrorString(QString());
     return true;
+}
+
+bool Backend::copyToClipboard(const QString &text){
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    if (!clipboard) {
+        setErrorString(QStringLiteral("Clipboard is not available."));
+        return false;
+    }
+
+    clipboard->setText(text);
+    setErrorString(QString());
+    return true;
+}
+
+QVariantList Backend::shortcutBindings() const{
+    const auto it = m_userConfig.find(QString::fromLatin1(shortcutBindingsKey));
+    if (it == m_userConfig.end())
+        return defaultShortcutBindings();
+
+    const QVariantList saved = it->second.toList();
+    const QVariantList normalized = normalizedShortcutBindings(saved);
+    return normalized.isEmpty() ? defaultShortcutBindings() : normalized;
+}
+
+bool Backend::applyShortcutBindings(const QVariantList &shortcutBindings){
+    const QVariantList normalized = normalizedShortcutBindings(shortcutBindings);
+    if (normalized.isEmpty()) {
+        setErrorString(QStringLiteral("Shortcut bindings are empty."));
+        return false;
+    }
+
+    QVariantMap data = toVariantMap();
+    data.insert(QString::fromLatin1(shortcutBindingsKey), normalized);
+    data.insert(QString::fromLatin1(hyprlandBindModeKey), QStringLiteral("configured"));
+
+    if (!save(data))
+        return false;
+
+    if (!writeManagedShortcutConfig(normalized))
+        return false;
+
+    if (!ensureManagedShortcutSource())
+        return false;
+
+    if (!reloadHyprland()) {
+        setErrorString(QStringLiteral("Saved shortcuts, but Hyprland did not reload. Run hyprctl reload or restart Hyprland."));
+        return false;
+    }
+
+    setErrorString(QString());
+    return true;
+}
+
+QString Backend::hyprlandConfigPath() const{
+    const QString override = QString::fromLocal8Bit(qgetenv("TIDE_ISLAND_HYPRLAND_CONFIG"));
+    if (!override.isEmpty())
+        return override.startsWith(QStringLiteral("~/")) ? QDir::homePath() + override.sliced(1) : override;
+
+    return QDir::homePath() + QStringLiteral("/.config/hypr/hyprland.conf");
+}
+
+QString Backend::managedShortcutConfigPath() const{
+    return QDir::homePath() + QStringLiteral("/.config/tide-island/hyprland-shortcuts.conf");
+}
+
+bool Backend::writeManagedShortcutConfig(const QVariantList &shortcutBindings){
+    const QFileInfo configInfo(managedShortcutConfigPath());
+    if (!QDir().mkpath(configInfo.absolutePath())) {
+        setErrorString(QStringLiteral("Could not create %1").arg(configInfo.absolutePath()));
+        return false;
+    }
+
+    QStringList lines;
+    lines.append(QStringLiteral("# Generated by Tide Island. Edit shortcuts in the Tide Island config app."));
+    for (const QVariant &value : shortcutBindings) {
+        const ShortcutBinding binding = bindingFromVariant(value);
+        lines.append(hyprlandConfBindLine(binding));
+    }
+    lines.append(QString());
+
+    QSaveFile file(configInfo.absoluteFilePath());
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        setErrorString(QStringLiteral("Could not write %1: %2").arg(configInfo.absoluteFilePath(), file.errorString()));
+        return false;
+    }
+
+    file.write(lines.join(u'\n').toUtf8());
+    if (!file.commit()) {
+        setErrorString(QStringLiteral("Could not save %1: %2").arg(configInfo.absoluteFilePath(), file.errorString()));
+        return false;
+    }
+
+    return true;
+}
+
+bool Backend::ensureManagedShortcutSource(){
+    const QFileInfo configInfo(hyprlandConfigPath());
+    if (!QDir().mkpath(configInfo.absolutePath())) {
+        setErrorString(QStringLiteral("Could not create %1").arg(configInfo.absolutePath()));
+        return false;
+    }
+
+    QString existing;
+    QFile input(configInfo.absoluteFilePath());
+    if (input.exists()) {
+        if (!input.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            setErrorString(QStringLiteral("Could not read %1: %2").arg(configInfo.absoluteFilePath(), input.errorString()));
+            return false;
+        }
+        existing = QString::fromUtf8(input.readAll());
+    }
+
+    const QString sourcePath = managedShortcutConfigPath();
+    const QString sourceLine = QStringLiteral("source = %1").arg(sourcePath);
+    const QStringList inputLines = existing.split(u'\n');
+    QStringList outputLines;
+    outputLines.reserve(inputLines.size() + 4);
+
+    bool sourcePresent = false;
+    for (const QString &line : inputLines) {
+        const QString trimmed = line.trimmed();
+        if (trimmed == sourceLine) {
+            sourcePresent = true;
+            outputLines.append(line);
+            continue;
+        }
+
+        if (trimmed.contains(QString::fromLatin1(tideShortcutPrefix)))
+            continue;
+        if (trimmed == QStringLiteral("# Tide Island shortcuts")
+            || trimmed == QStringLiteral("# Tide Island shortcut bindings"))
+            continue;
+
+        outputLines.append(line);
+    }
+
+    if (!sourcePresent) {
+        if (!outputLines.isEmpty() && !outputLines.last().trimmed().isEmpty())
+            outputLines.append(QString());
+        outputLines.append(QStringLiteral("# Tide Island shortcut bindings"));
+        outputLines.append(sourceLine);
+    }
+
+    QString output = outputLines.join(u'\n');
+    if (!output.endsWith(u'\n'))
+        output.append(u'\n');
+
+    QSaveFile file(configInfo.absoluteFilePath());
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        setErrorString(QStringLiteral("Could not write %1: %2").arg(configInfo.absoluteFilePath(), file.errorString()));
+        return false;
+    }
+
+    file.write(output.toUtf8());
+    if (!file.commit()) {
+        setErrorString(QStringLiteral("Could not save %1: %2").arg(configInfo.absoluteFilePath(), file.errorString()));
+        return false;
+    }
+
+    return true;
+}
+
+bool Backend::reloadHyprland(){
+    QProcess process;
+    process.setProgram(QStringLiteral("hyprctl"));
+    process.setArguments({QStringLiteral("reload")});
+    process.setStandardOutputFile(QProcess::nullDevice());
+    process.setStandardErrorFile(QProcess::nullDevice());
+    process.start();
+    return process.waitForFinished(5000)
+        && process.exitStatus() == QProcess::NormalExit
+        && process.exitCode() == 0;
 }
 
 void Backend::load(){

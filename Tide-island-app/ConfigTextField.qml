@@ -20,7 +20,7 @@ Rectangle {
     border.width: 2
     border.color: field.activeFocus ? Theme.focusBorderColor : Theme.inputBorderColor
     implicitWidth: 100
-    implicitHeight: 40
+    implicitHeight: 36
 
     Behavior on border.color {
         ColorAnimation { duration: Theme.animationDuration }

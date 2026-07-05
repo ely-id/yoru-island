@@ -41,6 +41,20 @@ PagePanel {
         contentWidth: width
         contentHeight: content.height
         boundsBehavior: Flickable.StopAtBounds
+        boundsMovement: Flickable.StopAtBounds
+        interactive: false
+
+        WheelHandler {
+            target: null
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+            onWheel: function(event) {
+                const rawDelta = event.pixelDelta.y !== 0 ? event.pixelDelta.y : event.angleDelta.y / 120 * 64
+                const maxY = Math.max(0, scroller.contentHeight - scroller.height)
+                scroller.contentY = Math.max(0, Math.min(maxY, scroller.contentY - rawDelta))
+                event.accepted = true
+            }
+        }
 
         Item {
             id: content
@@ -89,9 +103,9 @@ PagePanel {
                     anchors.top: parent.top
                     anchors.topMargin: 15
                     anchors.left: parent.left
-                    anchors.leftMargin: 30
+                    anchors.leftMargin: 18
                     anchors.right: parent.right
-                    anchors.rightMargin: 100
+                    anchors.rightMargin: 18
                     spacing: 15
 
                     ConfigRow {
@@ -102,10 +116,7 @@ PagePanel {
                         width: parent.width
                     }
 
-                    SplitLine {
-                        x: -15
-                        width: parent.width + 100
-                    }
+                    SplitLine { width: parent.width }
 
                     ConfigRow {
                         title: "Text Font Family"
@@ -115,10 +126,7 @@ PagePanel {
                         width: parent.width
                     }
 
-                    SplitLine {
-                        x: -15
-                        width: parent.width + 100
-                    }
+                    SplitLine { width: parent.width }
 
                     ConfigRow {
                         title: "Hero Font Family"
@@ -128,10 +136,7 @@ PagePanel {
                         width: parent.width
                     }
 
-                    SplitLine {
-                        x: -15
-                        width: parent.width + 100
-                    }
+                    SplitLine { width: parent.width }
 
                     ConfigRow {
                         title: "Time Font Family"
@@ -141,10 +146,7 @@ PagePanel {
                         width: parent.width
                     }
 
-                    SplitLine {
-                        x: -15
-                        width: parent.width + 100
-                    }
+                    SplitLine { width: parent.width }
 
                     ConfigRow {
                         title: "Body Font Size"
@@ -156,10 +158,7 @@ PagePanel {
                         width: parent.width
                     }
 
-                    SplitLine {
-                        x: -15
-                        width: parent.width + 100
-                    }
+                    SplitLine { width: parent.width }
 
                     ConfigRow {
                         title: "Title Font Size"
@@ -171,10 +170,7 @@ PagePanel {
                         width: parent.width
                     }
 
-                    SplitLine {
-                        x: -15
-                        width: parent.width + 100
-                    }
+                    SplitLine { width: parent.width }
 
                     ConfigRow {
                         title: "Icon Font Size"
@@ -206,7 +202,7 @@ PagePanel {
         property int minimumValue: 1
         property int maximumValue: 1000
 
-        height: 47
+        height: 49
 
         Text {
             id: rowTitle
@@ -229,11 +225,10 @@ PagePanel {
 
         ConfigTextField {
             id: field
-            anchors.top: rowTitle.top
-            anchors.topMargin: 5
             anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
             width: row.numeric ? 100 : 230
-            height: 35
+            height: 36
             placeholderText: row.fallbackText
             inputMethodHints: row.numeric ? Qt.ImhDigitsOnly : Qt.ImhNone
             validator: row.numeric ? intValidator : null
