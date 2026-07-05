@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Shapes
 import IslandBackend
 import Quickshell
 import Quickshell.Hyprland
@@ -253,21 +254,105 @@ Item {
     Behavior on opacity { NumberAnimation { duration: showCondition?180:120; easing.type: Easing.InOutQuad } }
 
     Rectangle {
-        id: overviewCard
-        anchors.centerIn: parent
-        width: implicitWidth; height: implicitHeight
-        implicitWidth: workspaceStage.implicitWidth + root.outerPadding*2
-        implicitHeight: workspaceStage.implicitHeight + root.outerPadding*2
-        radius: root.largeWorkspaceRadius + root.outerPadding
-        color: root.cardColor
-        border.width: 1; border.color: root.cardBorderColor
+	id: overviewCard
 
-        Rectangle {
-            anchors.fill: parent; anchors.margins: 1
-            radius: parent.radius-1; color: StyleTokens.transparent
-            border.width: 1; border.color: StyleTokens.overviewInnerBorder
-        }
+	anchors.centerIn: parent
 
+	width: implicitWidth
+   	height: implicitHeight
+
+    	implicitWidth: workspaceStage.implicitWidth + root.outerPadding * 2
+    	implicitHeight: workspaceStage.implicitHeight + root.outerPadding * 2
+
+    	// O Rectangle vira apenas contêiner.
+    	// O fundo real agora é desenhado pelo Shape.
+    	color: StyleTokens.transparent
+   	 border.width: 0
+	
+    	// Mantém a propriedade radius para compatibilidade visual interna,
+    	// mas ela não desenha mais a borda externa.
+    	radius: root.largeWorkspaceRadius + root.outerPadding
+
+   	// Ajustes próprios do preview.
+    	// Aqui podemos usar valores maiores do que na ilha pequena,
+    	// porque o preview é muito mais largo.
+    	readonly property real previewNotchSideInset: 10
+    	readonly property real previewNotchBiteDepth: 18
+    	readonly property real previewBottomRadius: 26
+
+    	function previewNotchPath(w, h, i, d, r) {
+	    return "M0,0 "
+		+ "C" + (i * 0.55) + ",0 "
+            	+ i + "," + (d * 0.45) + " "
+            	+ i + "," + d + " "
+
+            	+ "L" + i + "," + (h - r) + " "
+
+            	+ "A" + r + "," + r + " 0 0,0 " + (i + r) + "," + h + " "
+
+            	+ "L" + (w - i - r) + "," + h + " "
+
+            	+ "A" + r + "," + r + " 0 0,0 " + (w - i) + "," + (h - r) + " "
+
+            	+ "L" + (w - i) + "," + d + " "
+
+            	+ "C" + (w - i) + "," + (d * 0.45) + " "
+            	+ (w - i * 0.55) + ",0 "
+            	+ w + ",0 "
+
+            	+ "Z";
+    	}
+
+    	Shape {
+	    id: overviewCardShape
+
+            anchors.fill: parent
+            preferredRendererType: Shape.CurveRenderer
+
+            ShapePath {
+		fillColor: root.cardColor
+            	strokeColor: root.cardBorderColor
+            	strokeWidth: 0
+
+            	PathSvg {
+                    path: overviewCard.previewNotchPath(
+                    	overviewCard.width,
+                    	overviewCard.height,
+                    	overviewCard.previewNotchSideInset,
+                    	overviewCard.previewNotchBiteDepth,
+                    	overviewCard.previewBottomRadius
+                    )
+            	}
+            }
+    	}
+
+        Shape {
+	    id: overviewInnerBorderShape
+	    visible: false
+
+            x: 1
+            y: 1
+            width: Math.max(0, parent.width - 2)
+            height: Math.max(0, parent.height - 2)
+
+            preferredRendererType: Shape.CurveRenderer
+
+            ShapePath {
+            	fillColor: StyleTokens.transparent
+            	strokeColor: StyleTokens.overviewInnerBorder
+            	strokeWidth: 1
+			
+            	PathSvg {
+                    path: overviewCard.previewNotchPath(
+                    	overviewInnerBorderShape.width,
+                    	overviewInnerBorderShape.height,
+                    	Math.max(0, overviewCard.previewNotchSideInset - 1),
+                    	Math.max(0, overviewCard.previewNotchBiteDepth - 1),
+                    	Math.max(0, overviewCard.previewBottomRadius - 1)
+                    )
+            	}
+            }
+	}
         Item {
             id: workspaceStage
             anchors.centerIn: parent

@@ -4,6 +4,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Services.Mpris
 import IslandBackend
+import QtQuick.Shapes
 import "qml/common"
 import "qml/controlcenter"
 import "qml/connectivity"
@@ -91,7 +92,7 @@ PanelWindow {
             Math.ceil(root.controlCenterWindowHeight)
         )
         : Math.max(Math.ceil(4 + root.connectivityDetailHeight + 12), Math.ceil(root.controlCenterWindowHeight))
-    exclusiveZone: 4 + userConfig.islandHeight + 3
+    exclusiveZone: userConfig.islandHeight - 2
     aboveWindows: true
     focusable: islandContainer.wallpaperPickerLayerVisible
         || islandContainer.expandedPlayerKeyboardFocusRequested
@@ -147,7 +148,7 @@ PanelWindow {
     readonly property real controlCenterWindowHeight: islandContainer.controlCenterLayerVisible
         ? 4 + 320 + root.controlCenterMaximumExtraHeight + 12
         : 0
-    readonly property real connectivityDetailGap: 16
+    readonly property real connectivityDetailGap: 2
     readonly property int connectivityDetailAnimationDuration: 360
     readonly property string overviewWallpaperSource: overviewWallpaperCache.effectiveSource
     property string wallpaperPickerActiveWallpaper: userConfig.wallpaperPath
@@ -1290,7 +1291,7 @@ PanelWindow {
             id: mainCapsule
             z: 5
             property int morphDuration: 400
-            property real outlineWidth: root.overviewContentVisible ? 1 : 0
+            property real outlineWidth: 0
             property color outlineColor: root.overviewContentVisible ? root.overviewCapsuleBorderColor : StyleTokens.clearBlack
             property real displayedWidth: baseTargetWidth
             readonly property real baseTargetWidth: {
@@ -1370,8 +1371,97 @@ PanelWindow {
                 default:
                     return userConfig.islandHeight / 2;
                 }
-            }
-            function sideSwipeWidthForProgress(progressValue) {
+	    }
+	    // Ativa a forma com "mordida" em todos os estados normais da ilha.
+	    // Mantém o visual original durante overview, para não quebrar essa tela.
+	    readonly property bool useNotchShape: !root.overviewVisible
+	    // Cor real do fundo da ilha.
+	    // O Rectangle principal ficará transparente quando o Shape estiver ativo.
+	    readonly property color notchFillColor: root.overviewContentVisible
+    		 ? root.overviewCapsuleColor
+    		 : StyleTokens.black
+		 
+	    // Quanto a lateral da ilha entra para dentro.
+	    // Isso controla a largura útil dos painéis.
+	    // 8 foi o ponto que ficou bom no seu teste.
+	    readonly property real notchSideInset: useNotchShape ? 6 : 0
+
+ 	    // Profundidade visual da mordida.
+	    // Pode ser maior que notchSideInset sem apertar os painéis.
+	    // Teste 12, 14 ou 16.
+	    readonly property real notchBiteDepth: useNotchShape
+    		? Math.min(12, height / 2)
+    		: 0
+	    // Alcance extra da curva.
+	    // Isso não reduz a largura útil do painel; só suaviza a entrada da mordida.
+	    readonly property real notchCurveReach: useNotchShape ? 0 : 0
+	    
+	    // Compensação lateral real.
+	    // A largura extra deve seguir o inset lateral, não a profundidade visual.
+	    readonly property real notchSideAllowance: notchSideInset * 2
+	    
+	    // Teto do raio inferior.
+	    // Reduzir esse valor deixa a base menos "bolha" nos painéis grandes.
+	    readonly property real notchBottomRadiusCap: {
+		switch (islandContainer.islandState) {
+    		case "control_center":
+		    return 18;
+		case "wallpaper_picker":
+		    return 18;
+		case "expanded":
+		case "bluetooth_expanded":
+		    return 18;
+		case "notification":
+		    return mainCapsule.targetHeight / 2;
+	   	default:
+		    return 12;
+    		}
+	    }
+	    readonly property real notchBottomRadius: Math.min(
+    		height / 2,
+		Math.max(0, (width - notchSideInset * 2) / 2),
+		notchBottomRadiusCap
+	    )
+	    readonly property string notchSvgPath: {
+		const w = mainCapsule.width;
+		const h = mainCapsule.height;
+
+		const i = mainCapsule.notchSideInset;
+		const d = mainCapsule.notchBiteDepth;
+		const c = mainCapsule.notchCurveReach;
+		const r = mainCapsule.notchBottomRadius;
+
+		return "M" + (-c) + ",0 "
+
+		    // Mordida superior esquerda.
+        	    // A curva nasce um pouco fora do bloco e entra suavemente.
+        	    + "C" + (-c * 0.35) + ",0 "
+        	    + i + "," + (d * 0.18) + " "
+        	    + i + "," + d + " "
+
+        	    // Lateral esquerda.
+        	    + "L" + i + "," + (h - r) + " "
+
+        	    // Canto inferior esquerdo.
+        	    + "A" + r + "," + r + " 0 0,0 " + (i + r) + "," + h + " "
+
+        	    // Base.
+        	    + "L" + (w - i - r) + "," + h + " "
+
+        	    // Canto inferior direito.
+        	    + "A" + r + "," + r + " 0 0,0 " + (w - i) + "," + (h - r) + " "
+
+        	    // Lateral direita.
+        	    + "L" + (w - i) + "," + d + " "
+
+        	    // Mordida superior direita.
+        	    + "C" + (w - i) + "," + (d * 0.18) + " "
+        	    + (w + c * 0.35) + ",0 "
+        	    + (w + c) + ",0 "
+
+        	    + "Z";
+	    }
+	    function sideSwipeWidthForProgress(progressValue) {
                 if (progressValue < 0)
                     return userConfig.islandWidth + (islandContainer.customCapsuleWidth - userConfig.islandWidth)
                         * islandContainer.clamp01(-progressValue);
@@ -1382,14 +1472,14 @@ PanelWindow {
             }
             readonly property real sideSwipePreviewWidth: mainCapsule.sideSwipeWidthForProgress(
                 islandContainer.swipeTransitionProgress
-            )
-            color: root.overviewContentVisible ? root.overviewCapsuleColor : StyleTokens.black
-            y: 4
+            )	    
+	    color: (useNotchShape || root.overviewContentVisible) ? "transparent" : notchFillColor	    
+	    y: 0
             x: parent ? parent.width * userConfig.islandPositionX / 100 - width / 2 : 0
             clip: true
-            width: displayedWidth
+            width: displayedWidth + notchSideAllowance
             height: targetHeight
-            radius: targetRadius
+	    radius: targetRadius
 
             onBaseTargetWidthChanged: {
                 if (!capsuleMouseArea.sideSwipeInteractive && !islandContainer.sideSwipeSettling)
@@ -1410,12 +1500,31 @@ PanelWindow {
                     easing.type: Easing.OutQuint
                 }
             }
-            Behavior on radius { NumberAnimation { duration: mainCapsule.morphDuration; easing.type: Easing.OutQuint } }
+	    Behavior on radius { NumberAnimation { duration: mainCapsule.morphDuration; easing.type: Easing.OutQuint } }
             Behavior on color { ColorAnimation { duration: 280; easing.type: Easing.InOutQuad } }
             Behavior on outlineWidth { NumberAnimation { duration: 260; easing.type: Easing.InOutQuad } }
             Behavior on outlineColor { ColorAnimation { duration: 260; easing.type: Easing.InOutQuad } }
             border.width: outlineWidth
-            border.color: outlineColor
+	    border.color: outlineColor
+
+	    Shape {
+	    	id: notchBackground
+
+		anchors.fill: parent
+		visible: mainCapsule.useNotchShape
+		preferredRendererType: Shape.CurveRenderer
+		z: -1
+
+		ShapePath {
+		    fillColor: mainCapsule.notchFillColor
+		    strokeColor: "transparent"
+		    strokeWidth: 0
+
+		    PathSvg {
+			path: mainCapsule.notchSvgPath
+		    }
+	        }
+	    }
 
             Rectangle {
                 anchors.fill: parent
@@ -1424,7 +1533,8 @@ PanelWindow {
                 color: StyleTokens.transparent
                 border.width: 1
                 border.color: StyleTokens.overviewInnerBorder
-                opacity: root.overviewContentVisible ? 1 : 0
+		opacity: root.overviewContentVisible ? 1 : 0
+		visible: false
 
                 Behavior on opacity {
                     NumberAnimation {
