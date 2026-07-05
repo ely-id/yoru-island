@@ -822,9 +822,8 @@ void SystemServices::requestSystemStats() {
 
     qint64 totalMem = 0;
     qint64 availableMem = 0;
-    QTextStream memStream(&memFile);
-    while (!memStream.atEnd()) {
-        const QString line = memStream.readLine();
+    const QStringList memLines = QString::fromUtf8(memFile.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    for (const QString &line : memLines) {
         if (line.startsWith(QStringLiteral("MemTotal:"))) {
             const QStringList parts = line.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
             if (parts.size() >= 2) totalMem = parts.at(1).toLongLong();

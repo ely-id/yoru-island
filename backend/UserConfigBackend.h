@@ -18,6 +18,16 @@ class UserConfigBackend final : public QObject {
 
     Q_PROPERTY(QString wallpaperPath READ wallpaperPath NOTIFY wallpaperPathChanged FINAL)
     Q_PROPERTY(QString wallpaperLibraryPath READ wallpaperLibraryPath NOTIFY wallpaperLibraryPathChanged FINAL)
+    Q_PROPERTY(bool wallpaperPywalEnabled READ wallpaperPywalEnabled NOTIFY wallpaperPywalEnabledChanged FINAL)
+    Q_PROPERTY(QString wallpaperTransitionType READ wallpaperTransitionType NOTIFY wallpaperTransitionTypeChanged FINAL)
+    Q_PROPERTY(int wallpaperTransitionStep READ wallpaperTransitionStep NOTIFY wallpaperTransitionStepChanged FINAL)
+    Q_PROPERTY(double wallpaperTransitionDuration READ wallpaperTransitionDuration NOTIFY wallpaperTransitionDurationChanged FINAL)
+    Q_PROPERTY(int wallpaperTransitionFps READ wallpaperTransitionFps NOTIFY wallpaperTransitionFpsChanged FINAL)
+    Q_PROPERTY(int wallpaperTransitionAngle READ wallpaperTransitionAngle NOTIFY wallpaperTransitionAngleChanged FINAL)
+    Q_PROPERTY(QString wallpaperTransitionPosition READ wallpaperTransitionPosition NOTIFY wallpaperTransitionPositionChanged FINAL)
+    Q_PROPERTY(QString wallpaperTransitionBezier READ wallpaperTransitionBezier NOTIFY wallpaperTransitionBezierChanged FINAL)
+    Q_PROPERTY(QString wallpaperTransitionWave READ wallpaperTransitionWave NOTIFY wallpaperTransitionWaveChanged FINAL)
+    Q_PROPERTY(bool wallpaperTransitionInvertY READ wallpaperTransitionInvertY NOTIFY wallpaperTransitionInvertYChanged FINAL)
     Q_PROPERTY(QString iconFontFamily READ iconFontFamily NOTIFY iconFontFamilyChanged FINAL)
     Q_PROPERTY(QString textFontFamily READ textFontFamily NOTIFY textFontFamilyChanged FINAL)
     Q_PROPERTY(QString heroFontFamily READ heroFontFamily NOTIFY heroFontFamilyChanged FINAL)
@@ -33,7 +43,6 @@ class UserConfigBackend final : public QObject {
     Q_PROPERTY(QString dynamicIslandSecondaryAction READ dynamicIslandSecondaryAction NOTIFY dynamicIslandSecondaryActionChanged FINAL)
     Q_PROPERTY(QVariantList dynamicIslandLeftSwipeItems READ dynamicIslandLeftSwipeItems NOTIFY dynamicIslandLeftSwipeItemsChanged FINAL)
     Q_PROPERTY(bool disableAutoExpandOnTrackChange READ disableAutoExpandOnTrackChange NOTIFY disableAutoExpandOnTrackChangeChanged FINAL)
-    Q_PROPERTY(bool enableHoverExpand READ enableHoverExpand NOTIFY enableHoverExpandChanged FINAL)
     Q_PROPERTY(int hoverExpandAction READ hoverExpandAction NOTIFY hoverExpandActionChanged FINAL)
 
     Q_PROPERTY(int islandWidth READ islandWidth NOTIFY islandWidthChanged FINAL)
@@ -52,6 +61,16 @@ public:
     QString defaultTlpSudoPassword() const;
     QString wallpaperPath() const;
     QString wallpaperLibraryPath() const;
+    bool wallpaperPywalEnabled() const;
+    QString wallpaperTransitionType() const;
+    int wallpaperTransitionStep() const;
+    double wallpaperTransitionDuration() const;
+    int wallpaperTransitionFps() const;
+    int wallpaperTransitionAngle() const;
+    QString wallpaperTransitionPosition() const;
+    QString wallpaperTransitionBezier() const;
+    QString wallpaperTransitionWave() const;
+    bool wallpaperTransitionInvertY() const;
     QString iconFontFamily() const;
     QString textFontFamily() const;
     QString heroFontFamily() const;
@@ -65,7 +84,6 @@ public:
     QString dynamicIslandSecondaryAction() const;
     const QVariantList &dynamicIslandLeftSwipeItems() const;
     bool disableAutoExpandOnTrackChange() const;
-    bool enableHoverExpand() const;
     int hoverExpandAction() const;
     int islandWidth() const;
     int islandHeight() const;
@@ -86,6 +104,16 @@ signals:
     void defaultTlpSudoPasswordChanged();
     void wallpaperPathChanged();
     void wallpaperLibraryPathChanged();
+    void wallpaperPywalEnabledChanged();
+    void wallpaperTransitionTypeChanged();
+    void wallpaperTransitionStepChanged();
+    void wallpaperTransitionDurationChanged();
+    void wallpaperTransitionFpsChanged();
+    void wallpaperTransitionAngleChanged();
+    void wallpaperTransitionPositionChanged();
+    void wallpaperTransitionBezierChanged();
+    void wallpaperTransitionWaveChanged();
+    void wallpaperTransitionInvertYChanged();
     void iconFontFamilyChanged();
     void textFontFamilyChanged();
     void heroFontFamilyChanged();
@@ -99,7 +127,6 @@ signals:
     void dynamicIslandSecondaryActionChanged();
     void dynamicIslandLeftSwipeItemsChanged();
     void disableAutoExpandOnTrackChangeChanged();
-    void enableHoverExpandChanged();
     void hoverExpandActionChanged();
     void islandWidthChanged();
     void islandHeightChanged();
@@ -120,12 +147,22 @@ private:
     QString m_defaultTlpSudoPassword;
     QString m_wallpaperPath;
     QString m_wallpaperLibraryPath;
+    bool m_wallpaperPywalEnabled = false;
+    QString m_wallpaperTransitionType = QStringLiteral("center");
+    int m_wallpaperTransitionStep = 5;
+    double m_wallpaperTransitionDuration = 3.0;
+    int m_wallpaperTransitionFps = 60;
+    int m_wallpaperTransitionAngle = 45;
+    QString m_wallpaperTransitionPosition = QStringLiteral("center");
+    QString m_wallpaperTransitionBezier = QStringLiteral(".54,0,.34,.99");
+    QString m_wallpaperTransitionWave = QStringLiteral("20,20");
+    bool m_wallpaperTransitionInvertY = false;
     QString m_iconFontFamily = QStringLiteral("JetBrainsMono Nerd Font");
     QString m_textFontFamily = QStringLiteral("Inter Display");
     QString m_heroFontFamily = QStringLiteral("Inter Display");
     QString m_timeFontFamily = QStringLiteral("Inter Display");
     QString m_tlpSudoPassword;
-    QString m_tlpPermissionMode = QStringLiteral("ask");
+    QString m_tlpPermissionMode = QStringLiteral("skip");
     int m_workspaceOverviewWindowDragButton = 1;
     int m_dynamicIslandPrimaryButton = 1;
     QString m_dynamicIslandPrimaryAction = QStringLiteral("toggleExpandedPlayer");
@@ -133,7 +170,6 @@ private:
     QString m_dynamicIslandSecondaryAction = QStringLiteral("toggleControlCenter");
     QVariantList m_dynamicIslandLeftSwipeItems;
     bool m_disableAutoExpandOnTrackChange = false;
-    bool m_enableHoverExpand = false;
     int m_hoverExpandAction = 1;
     int m_islandWidth = 140;
     int m_islandHeight = 38;

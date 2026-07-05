@@ -163,6 +163,7 @@ Item {
     readonly property string bluetoothStatusText: buildBluetoothStatusText()
     readonly property string bluetoothAvailabilityMessage: bluetoothAvailable ? "" : "No Bluetooth adapter is available."
     readonly property string batteryModeStatusText: buildBatteryModeStatusText()
+    readonly property bool tlpControlsEnabled: trimString(userConfig.tlpPermissionMode) !== "skip"
 
     function clamp01(value) {
         return Math.max(0, Math.min(1, value));
@@ -203,7 +204,7 @@ Item {
         batteryDrawerSettling = true;
         batteryDrawerProgress = nextOpen ? 1 : 0;
         batteryDrawerSettleTimer.restart();
-        if (nextOpen && !batteryTlpChecked)
+        if (nextOpen && tlpControlsEnabled && !batteryTlpChecked)
             refreshBatteryModeState();
     }
 
@@ -1553,7 +1554,8 @@ Item {
                 height: controlCenter.batteryModeCardHeight
                 radius: 20
                 color: StyleTokens.clearBlack
-                opacity: Math.min(1, controlCenter.batteryDrawerProgress * 1.35)
+                visible: controlCenter.tlpControlsEnabled
+                opacity: controlCenter.tlpControlsEnabled ? Math.min(1, controlCenter.batteryDrawerProgress * 1.35) : 0
                 clip: true
 
                 MatteSurface {
@@ -1748,7 +1750,7 @@ Item {
 
             Rectangle {
                 id: quickTogglesCard
-                x: batteryDrawer.cardWidth + connectivityCardsRow.spacing
+                x: controlCenter.tlpControlsEnabled ? batteryDrawer.cardWidth + connectivityCardsRow.spacing : 0
                 y: batteryModeCard.y
                 width: batteryDrawer.cardWidth
                 height: controlCenter.batteryModeCardHeight
@@ -1759,6 +1761,13 @@ Item {
                 readonly property real toggleIconTop: 12
                 readonly property real toggleIconBoxHeight: 32
                 readonly property real toggleLabelTop: 55
+
+                Behavior on x {
+                    NumberAnimation {
+                        duration: 180
+                        easing.type: Easing.OutCubic
+                    }
+                }
 
                 MatteSurface {
                     anchors.fill: parent

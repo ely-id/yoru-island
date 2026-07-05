@@ -286,12 +286,22 @@ QJsonObject defaultUserConfig()
     return {
         {QString::fromLatin1(wallpaperPathKey), QString()},
         {QString::fromLatin1(wallpaperLibraryPathKey), QString()},
+        {QStringLiteral("wallpaperPywalEnabled"), false},
+        {QStringLiteral("wallpaperTransitionType"), QStringLiteral("center")},
+        {QStringLiteral("wallpaperTransitionStep"), 5},
+        {QStringLiteral("wallpaperTransitionDuration"), 3.0},
+        {QStringLiteral("wallpaperTransitionFps"), 60},
+        {QStringLiteral("wallpaperTransitionAngle"), 45},
+        {QStringLiteral("wallpaperTransitionPosition"), QStringLiteral("center")},
+        {QStringLiteral("wallpaperTransitionBezier"), QStringLiteral(".54,0,.34,.99")},
+        {QStringLiteral("wallpaperTransitionWave"), QStringLiteral("20,20")},
+        {QStringLiteral("wallpaperTransitionInvertY"), false},
         {QStringLiteral("iconFontFamily"), QStringLiteral("JetBrainsMono Nerd Font")},
         {QStringLiteral("textFontFamily"), QStringLiteral("Inter Display")},
         {QStringLiteral("heroFontFamily"), QStringLiteral("Inter Display")},
         {QStringLiteral("timeFontFamily"), QStringLiteral("Inter Display")},
         {QString::fromLatin1(tlpSudoPasswordKey), QString()},
-        {QString::fromLatin1(tlpPermissionModeKey), QString()},
+        {QString::fromLatin1(tlpPermissionModeKey), QStringLiteral("skip")},
         {QString::fromLatin1(hyprlandBindModeKey), QString()},
         {QStringLiteral("workspaceOverviewWindowDragButton"), 1},
         {QStringLiteral("dynamicIslandPrimaryButton"), 1},
@@ -300,7 +310,6 @@ QJsonObject defaultUserConfig()
         {QStringLiteral("dynamicIslandSecondaryAction"), QStringLiteral("toggleControlCenter")},
         {QStringLiteral("dynamicIslandLeftSwipeItems"), stringArray({QStringLiteral("cava"), QStringLiteral("battery")})},
         {QStringLiteral("disableAutoExpandOnTrackChange"), false},
-        {QStringLiteral("enableHoverExpand"), false},
         {QStringLiteral("hoverExpandAction"), 1},
         {QStringLiteral("islandWidth"), 140},
         {QStringLiteral("islandHeight"), 38},
@@ -387,6 +396,10 @@ QString formatUserConfig(const QJsonObject &data)
     auto num = [&](const QString &key, int fallback = 0) {
         const QJsonValue v = data.value(key);
         return v.isDouble() ? qRound(v.toDouble()) : fallback;
+    };
+    auto decimal = [&](const QString &key, double fallback = 0.0) {
+        const QJsonValue v = data.value(key);
+        return v.isDouble() ? v.toDouble() : fallback;
     };
     auto boolean = [&](const QString &key, bool fallback = false) {
         const QJsonValue v = data.value(key);
@@ -515,6 +528,37 @@ QString formatUserConfig(const QJsonObject &data)
          "    // Directory scanned by the wallpaper picker.\n"
          "    \"wallpaperLibraryPath\": \"" << str("wallpaperLibraryPath") << "\",\n"
          "\n"
+         "    // Run pywal after applying a wallpaper with awww.\n"
+         "    \"wallpaperPywalEnabled\": " << (boolean("wallpaperPywalEnabled", false) ? "true" : "false") << ",\n"
+         "\n"
+         "    // awww transition type: none, simple, fade, left, right, top, bottom,\n"
+         "    // wipe, wave, grow, center, any, outer, random.\n"
+         "    \"wallpaperTransitionType\": \"" << str("wallpaperTransitionType", "center") << "\",\n"
+         "\n"
+         "    // awww transition step. Higher is faster and more abrupt.\n"
+         "    \"wallpaperTransitionStep\": " << num("wallpaperTransitionStep", 5) << ",\n"
+         "\n"
+         "    // awww transition duration in seconds. Used by most non-simple transitions.\n"
+         "    \"wallpaperTransitionDuration\": " << decimal("wallpaperTransitionDuration", 3.0) << ",\n"
+         "\n"
+         "    // awww transition frame rate.\n"
+         "    \"wallpaperTransitionFps\": " << num("wallpaperTransitionFps", 60) << ",\n"
+         "\n"
+         "    // awww wipe / wave angle in degrees.\n"
+         "    \"wallpaperTransitionAngle\": " << num("wallpaperTransitionAngle", 45) << ",\n"
+         "\n"
+         "    // awww grow / outer transition position.\n"
+         "    \"wallpaperTransitionPosition\": \"" << str("wallpaperTransitionPosition", "center") << "\",\n"
+         "\n"
+         "    // awww fade bezier curve.\n"
+         "    \"wallpaperTransitionBezier\": \"" << str("wallpaperTransitionBezier", ".54,0,.34,.99") << "\",\n"
+         "\n"
+         "    // awww wave width,height pair.\n"
+         "    \"wallpaperTransitionWave\": \"" << str("wallpaperTransitionWave", "20,20") << "\",\n"
+         "\n"
+         "    // Invert awww transition y position.\n"
+         "    \"wallpaperTransitionInvertY\": " << (boolean("wallpaperTransitionInvertY", false) ? "true" : "false") << ",\n"
+         "\n"
          "\n"
          "    // ===========================================================================\n"
          "    //  POWER - TLP Profile Switching\n"
@@ -524,7 +568,7 @@ QString formatUserConfig(const QJsonObject &data)
          "    //  \"skip\"       Disable TLP controls entirely\n"
          "    //  \"ask\"        Prompt for password each time\n"
          "    //  \"password\"   Use the stored password below\n"
-         "    \"tlpPermissionMode\": \"" << str("tlpPermissionMode") << "\",\n"
+         "    \"tlpPermissionMode\": \"" << str("tlpPermissionMode", "skip") << "\",\n"
          "\n"
          "    // Sudo password. Only read when tlpPermissionMode is \"password\".\n"
          "    \"tlpSudoPassword\": \"" << str("tlpSudoPassword") << "\",\n"
@@ -542,10 +586,8 @@ QString formatUserConfig(const QJsonObject &data)
           "    //  INTERACTION - Hover\n"
           "    // ===========================================================================\n"
           "\n"
-          "    // When true, hovering over the island capsule will automatically expand it.\n"
-          "    \"enableHoverExpand\": " << (boolean("enableHoverExpand", false) ? "true" : "false") << ",\n"
-          "\n"
-          "    // What to expand when hovering.\n"
+          "    // What to open when hovering over the island capsule.\n"
+          "    //  0 = Disabled\n"
           "    //  1 = Music Player (expanded player view)\n"
           "    //  2 = Control Center\n"
           "    \"hoverExpandAction\": " << num("hoverExpandAction", 1) << "\n"

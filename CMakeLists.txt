@@ -78,6 +78,8 @@ target_link_libraries(tide-island-setup PRIVATE
     Qt6::Core
 )
 
+add_subdirectory(Tide-island-app)
+
 # Main Backend Module (Combining all C++ components)
 qt_add_qml_module(IslandBackend
     URI IslandBackend

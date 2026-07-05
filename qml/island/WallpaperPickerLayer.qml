@@ -15,8 +15,15 @@ FocusScope {
     property string textFontFamily: ""
     readonly property var userConfig: UserConfig
 
-    property int transitionFps: 60
-    property int transitionStep: 5
+    property bool pywalEnabled: userConfig.wallpaperPywalEnabled
+    property int transitionFps: boundedInt(userConfig.wallpaperTransitionFps, 60, 1, 240)
+    property int transitionStep: boundedInt(userConfig.wallpaperTransitionStep, 5, 1, 255)
+    property real transitionDuration: boundedReal(userConfig.wallpaperTransitionDuration, 3.0, 0, 120)
+    property int transitionAngle: boundedInt(userConfig.wallpaperTransitionAngle, 45, 0, 360)
+    property string transitionPosition: nonEmptyString(userConfig.wallpaperTransitionPosition, "center")
+    property string transitionBezier: nonEmptyString(userConfig.wallpaperTransitionBezier, ".54,0,.34,.99")
+    property string transitionWave: nonEmptyString(userConfig.wallpaperTransitionWave, "20,20")
+    property bool transitionInvertY: userConfig.wallpaperTransitionInvertY
     property string wallpaperDir: userConfig.wallpaperLibraryPath
     property string targetWallpaperPath: userConfig.wallpaperPath
     property int thumbnailWidth: 640
@@ -87,15 +94,20 @@ FocusScope {
         + "except Exception:\n"
         + "    pass\n"
     readonly property string applyScript: "import os,shutil,subprocess,sys\n"
-        + "source,target,transition,step,fps=sys.argv[1:6]\n"
+        + "source,target,transition,step,duration,fps,angle,pos,bezier,wave,invert_y,pywal_enabled=sys.argv[1:13]\n"
         + "if not source or not target:\n"
         + "    sys.exit(2)\n"
         + "os.makedirs(os.path.dirname(target) or '.',exist_ok=True)\n"
         + "shutil.copy2(source,target)\n"
-        + "subprocess.run(['awww','img',target,'--transition-type',transition,'--transition-step',step,'--transition-fps',fps],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n"
+        + "cmd=['awww','img',target,'--transition-type',transition,'--transition-step',step,'--transition-duration',duration,'--transition-fps',fps,'--transition-angle',angle,'--transition-pos',pos,'--transition-bezier',bezier,'--transition-wave',wave]\n"
+        + "if invert_y == 'true':\n"
+        + "    cmd.append('--invert-y')\n"
+        + "result=subprocess.run(cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n"
+        + "if pywal_enabled == 'true' and result.returncode == 0:\n"
+        + "    subprocess.run(['wal','-i',target],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n"
 
-    readonly property var transitionTypes: ["center", "simple", "left", "right", "top", "bottom", "any", "random"]
-    property int selectedTransitionIndex: 0
+    readonly property var transitionTypes: ["none", "simple", "fade", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any", "outer", "random"]
+    readonly property string configuredTransitionType: validTransitionType(userConfig.wallpaperTransitionType)
 
     focus: showCondition
     activeFocusOnTab: true
@@ -182,6 +194,30 @@ FocusScope {
 
     function displayPath(path) {
         return path === "" ? "wallpaperLibraryPath" : path;
+    }
+
+    function boundedInt(value, fallback, minimumValue, maximumValue) {
+        const number = Number(value);
+        if (!isFinite(number))
+            return fallback;
+        return Math.max(minimumValue, Math.min(maximumValue, Math.round(number)));
+    }
+
+    function boundedReal(value, fallback, minimumValue, maximumValue) {
+        const number = Number(value);
+        if (!isFinite(number))
+            return fallback;
+        return Math.max(minimumValue, Math.min(maximumValue, number));
+    }
+
+    function nonEmptyString(value, fallback) {
+        const text = String(value === undefined || value === null ? "" : value).trim();
+        return text.length > 0 ? text : fallback;
+    }
+
+    function validTransitionType(value) {
+        const text = nonEmptyString(value, "center");
+        return transitionTypes.indexOf(text) >= 0 ? text : "center";
     }
 
     function enqueueThumbnail(sourcePath, cachePath) {
@@ -321,7 +357,7 @@ FocusScope {
             applyProcess.running = false;
         applyProcess.wallpaperPath = filePath;
         applyProcess.targetPath = targetPath;
-        applyProcess.transitionType = transitionTypes[selectedTransitionIndex];
+        applyProcess.transitionType = configuredTransitionType;
         applyProcess.running = true;
     }
 
@@ -379,7 +415,21 @@ FocusScope {
         property string wallpaperPath: ""
         property string targetPath: ""
         property string transitionType: "center"
-        command: ["python3", "-c", root.applyScript, wallpaperPath, targetPath, transitionType, String(root.transitionStep), String(root.transitionFps)]
+        command: [
+            "python3", "-c", root.applyScript,
+            wallpaperPath,
+            targetPath,
+            transitionType,
+            String(root.transitionStep),
+            String(root.transitionDuration),
+            String(root.transitionFps),
+            String(root.transitionAngle),
+            root.transitionPosition,
+            root.transitionBezier,
+            root.transitionWave,
+            root.transitionInvertY ? "true" : "false",
+            root.pywalEnabled ? "true" : "false"
+        ]
         onExited: {
             running = false;
             if (root.closeAfterApply) {
@@ -392,8 +442,8 @@ FocusScope {
     readonly property real topPad: 14
     readonly property real botPad: 8
     readonly property real hPad: 12
-    readonly property real headerH: 24
-    readonly property real headerGap: 4
+    readonly property real headerH: 0
+    readonly property real headerGap: 0
     readonly property real labelH: 22
     readonly property real labelGap: 5
 
@@ -415,48 +465,6 @@ FocusScope {
         anchors.rightMargin: root.hPad
         anchors.bottomMargin: 6
         spacing: 6
-
-        // ── Header ─────────────────────────────────────────────────────────
-        Item {
-            width: parent.width
-            height: 30
-
-            Rectangle {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                width: pillLabel.implicitWidth + 20
-                height: 24
-                radius: 50
-                color: pillMouse.pressed ? Qt.rgba(1, 1, 1, 0.16) : pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.06)
-                Behavior on color {
-                    ColorAnimation {
-                        duration: 100
-                    }
-                }
-
-                Text {
-                    id: pillLabel
-                    anchors.centerIn: parent
-                    text: root.transitionTypes[root.selectedTransitionIndex]
-                    color: pillMouse.containsMouse ? "white" : Qt.rgba(1, 1, 1, 0.50)
-                    font.pixelSize: 11
-                    font.family: root.textFontFamily
-                    font.weight: Font.Medium
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: 100
-                        }
-                    }
-                }
-
-                MouseArea {
-                    id: pillMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: root.selectedTransitionIndex = (root.selectedTransitionIndex + 1) % root.transitionTypes.length
-                }
-            }
-        }
 
         // ── Carousel ───────────────────────────────────────────────────────
         Item {

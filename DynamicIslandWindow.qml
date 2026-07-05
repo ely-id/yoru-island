@@ -121,6 +121,11 @@ PanelWindow {
         userConfig.dynamicIslandPrimaryButton,
         userConfig.dynamicIslandSecondaryButton
     ])
+    readonly property int configuredHoverExpandAction: {
+        const action = Number(userConfig.hoverExpandAction);
+        return isNaN(action) ? 0 : Math.max(0, Math.min(2, Math.round(action)));
+    }
+    readonly property bool hoverExpandEnabled: configuredHoverExpandAction > 0
     readonly property bool topGestureInputActive: !root.overviewVisible && islandContainer.canShowSideSwipe
     readonly property real topGestureInputHeight: topGestureInputActive ? root.exclusiveZone : 0
     readonly property real overviewCapsuleWidth: islandContainer.overviewView ? islandContainer.overviewView.width : 760
@@ -1235,16 +1240,16 @@ PanelWindow {
             repeat: false
             onTriggered: {
                 if (!capsuleMouseArea.containsMouse) return;
-                if (!userConfig.enableHoverExpand) return;
+                if (!root.hoverExpandEnabled) return;
 
                 const current = islandContainer.islandState;
-                const target = userConfig.hoverExpandAction === 2 ? "control_center" : "expanded";
+                const target = root.configuredHoverExpandAction === 2 ? "control_center" : "expanded";
                 if (current === target) return;
                 if (current !== "normal" && current !== "custom" && current !== "lyrics")
                     return;
 
                 islandContainer.hoverExpandedActive = true;
-                if (userConfig.hoverExpandAction === 2)
+                if (root.configuredHoverExpandAction === 2)
                     islandContainer.showControlCenter();
                 else
                     islandContainer.showExpandedPlayer(false);
@@ -1442,7 +1447,7 @@ PanelWindow {
                 enabled: !root.overviewVisible && twoFingerTouchArea.touchPoints.length < 2
                 acceptedButtons: root.dynamicIslandAcceptedButtons
                 preventStealing: true
-                hoverEnabled: userConfig.enableHoverExpand
+                hoverEnabled: root.hoverExpandEnabled
                 property real swipeStartX: 0
                 property real swipeStartY: 0
                 property real swipeStartProgress: 0
@@ -1462,7 +1467,7 @@ PanelWindow {
                 }
 
                 onEntered: {
-                    if (!userConfig.enableHoverExpand) return;
+                    if (!root.hoverExpandEnabled) return;
                     hoverCollapseDelayTimer.stop();
                     hoverExpandDelayTimer.restart();
                 }

@@ -256,7 +256,7 @@ tide-island-setup --shortcuts
 | `textFontFamily` | 通用正文字体 | string | `"Inter Display"` |
 | `heroFontFamily` | 大标题字体（歌曲名、控制中心标题等） | string | `"Inter Display"` |
 | `timeFontFamily` | 时间显示字体 | string | `"Inter Display"` |
-| `tlpPermissionMode` | TLP 省电模式切换的提权方式 | string | `"ask"` |
+| `tlpPermissionMode` | TLP 省电模式切换的提权方式 | string | `"skip"` |
 | `tlpSudoPassword` | `tlpPermissionMode` 为 `"password"` 时使用的 sudo 密码 | string | `""` |
 | `hyprlandBindMode` | setup 快捷键引导状态，设为 `"manual"` 时不再提示自动写入 | string | `""` |
 | `workspaceOverviewWindowDragButton` | 工作区概览中拖拽窗口的鼠标按键 | int | `1`（左键） |
@@ -357,7 +357,7 @@ hyprland.bind("SUPER", "W", "exec", "/usr/bin/quickshell ipc -p /usr/share/tide-
 ~/.config/tide-island/userconfig.json
 ```
 
-引导程序会创建完整 JSON。大多数配置项使用默认值；`wallpaperPath`、`wallpaperLibraryPath` 和 `tlpSudoPassword` 依赖本机环境，所以由引导程序交互填写。
+引导程序会创建完整 JSON。大多数配置项使用默认值；`wallpaperPath` 和 `wallpaperLibraryPath` 依赖本机环境，所以由引导程序交互填写。TLP 默认关闭，可在配置 App 的 General 页面开启。
 
 修改配置后，重启服务：
 

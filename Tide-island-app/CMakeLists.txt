@@ -61,6 +61,10 @@ install(TARGETS tide-island-config-app
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/TideIsland
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/qt6/qml
+)
+
 install(FILES tide-island-config.desktop
     DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
 )
