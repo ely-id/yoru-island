@@ -214,6 +214,7 @@ Thanks to:
 
 - [@end-4](https://github.com/end-4) for the workspace overview design inspiration
 - [@gozhuimeng](https://github.com/gozhuimeng) for improving the lyrics backend
+- [@LatifKovani](https://github.com/LatifKovani) for a significant improvement
 
 ## Community
 
