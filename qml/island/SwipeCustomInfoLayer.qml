@@ -9,6 +9,8 @@ Item {
     property var items: []
     property var cavaLevels: []
     property string timeText: ""
+    property string workspaceBadgeText: ""
+    property bool workspaceBadgeVisible: false
     property var configSource: null
     readonly property var activeConfig: configSource || userConfig
     property string iconFontFamily: activeConfig.iconFontFamily
@@ -235,5 +237,30 @@ Item {
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
         wrapMode: Text.NoWrap
+    }
+    Rectangle {
+        visible: workspaceBadgeText !== ""
+        opacity: workspaceBadgeVisible ? clampedProgress : 0
+        anchors.right: parent.right
+        anchors.rightMargin: 14
+        anchors.verticalCenter: parent.verticalCenter
+        width: workspaceBadgeLabel.implicitWidth + 10
+        height: 16
+        radius: height / 2
+        color: "#2c2c2e"
+
+        Behavior on opacity {
+            NumberAnimation { duration: 180; easing.type: Easing.InOutQuad }
+        }
+
+        Text {
+            id: workspaceBadgeLabel
+            anchors.centerIn: parent
+            text: root.workspaceBadgeText
+            color: "white"
+            font.pixelSize: 10
+            font.family: root.timeFontFamily
+            font.weight: Font.Bold
+        }
     }
 }

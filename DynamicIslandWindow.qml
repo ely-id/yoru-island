@@ -459,6 +459,7 @@ PanelWindow {
         property bool osdProgressAnimationEnabled: true
         property string osdCustomText: ""
         property int currentWs: root.currentMonitorWorkspaceId > 0 ? root.currentMonitorWorkspaceId : 1
+        property bool workspaceBadgeFlashing: false
         readonly property int batteryCapacity: systemState.batteryCapacity
         readonly property bool isCharging: systemState.isCharging
         readonly property real currentVolume: systemState.currentVolume
@@ -1195,9 +1196,18 @@ PanelWindow {
             showRestingCapsule("normal");
         }
 
+        function flashWorkspaceBadge() {
+            workspaceBadgeFlashing = true;
+            workspaceBadgeTimer.restart();
+        }
+
         function showWorkspaceCapsule(wsId) {
             currentWs = wsId;
             if (islandState === "control_center" || islandState === "notification") return;
+            if (islandState === "custom" || islandState === "lyrics" || islandState === "session_menu") {
+                flashWorkspaceBadge();
+                return;
+            }
             const animateFromSide = currentTransientOriginSide();
             clearTransientCapsule();
             sideTransientRestoreTimer.stop();
@@ -1207,7 +1217,11 @@ PanelWindow {
             swipeTransitionProgress = 0;
             restartAutoHideTimer();
         }
-
+        Timer {
+            id: workspaceBadgeTimer
+            interval: 1500
+            onTriggered: islandContainer.workspaceBadgeFlashing = false
+        }
         Timer { id: autoHideTimer; interval: islandContainer.defaultAutoHideInterval; onTriggered: islandContainer.smartRestoreState() }
         Timer {
             id: islandTimerTick
@@ -1826,6 +1840,8 @@ PanelWindow {
                             && islandContainer.splitOriginSide !== "left"
                         showCondition: true
                         onPreferredWidthChanged: islandContainer.syncCustomCapsuleWidth()
+                        workspaceBadgeText: String(islandContainer.currentWs)
+                        workspaceBadgeVisible: islandContainer.workspaceBadgeFlashing
                     }
                 }
             }
@@ -1854,6 +1870,8 @@ PanelWindow {
                             && islandContainer.splitOriginSide !== "right"
                         showCondition: true
                         onPreferredWidthChanged: islandContainer.syncLyricsCapsuleWidth()
+                        workspaceBadgeText: String(islandContainer.currentWs)
+                        workspaceBadgeVisible: islandContainer.workspaceBadgeFlashing
                     }
                 }
             }
