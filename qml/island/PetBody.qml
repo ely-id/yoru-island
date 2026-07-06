@@ -11,8 +11,10 @@ Item {
         "walk":     { row: 1, frames: 8, fps: 8 },
         "happy":    { row: 3, frames: 4, fps: 6 },
         "dance":    { row: 4, frames: 5, fps: 8 },
+        "run":      { row: 2, frames: 8, fps: 12 },
         "sad":      { row: 5, frames: 8, fps: 6 },
         "sleepy":   { row: 6, frames: 6, fps: 3 },
+        "quirk":    { row: 8, frames: 7, fps: 5 },
         "sleeping": { row: 6, frames: 2, fps: 1 }
     })
     readonly property var currentAnim: moodMap[mood] || moodMap["idle"]

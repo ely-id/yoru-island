@@ -35,7 +35,7 @@ Item {
         if (Math.abs(targetX - body.x) < 2) return;
         brain.walkDirection = targetX < body.x ? -1 : 1;
         walkAnim.to = targetX;
-        walkAnim.duration = Math.max(500, Math.abs(targetX - body.x) * 24);
+        walkAnim.duration = Math.max(400, Math.abs(targetX - body.x) * (brain.pace === "run" ? 9 : 24));
         walkAnim.start();
     }
 
