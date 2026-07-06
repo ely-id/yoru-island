@@ -115,7 +115,71 @@ Item {
                 font.weight: Font.Bold
             }
         }
+        Rectangle {
+            id: bluetoothScanToggle
+            anchors.right: headerRow.right
+            anchors.verticalCenter: headerRow.verticalCenter
+            visible: root.isBluetooth
+                && root.provider
+                && root.provider.bluetoothAvailable
+                && root.provider.bluetoothEnabled
+                && root.provider.bluetoothAdapter
+            width: bluetoothScanLabelStack.width + 20
+            height: 20
+            radius: height / 2
+            color: root.bluetoothScanning ? StyleTokens.accentSoft : StyleTokens.track
 
+            Behavior on color {
+                ColorAnimation { duration: 140; easing.type: Easing.OutCubic }
+            }
+            Behavior on width {
+                NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+            }
+
+            Item {
+                id: bluetoothScanLabelStack
+                anchors.centerIn: parent
+                width: Math.max(bluetoothScanIdleLabel.implicitWidth, bluetoothScanStopLabel.implicitWidth)
+                height: bluetoothScanIdleLabel.implicitHeight
+
+                Text {
+                    id: bluetoothScanIdleLabel
+                    anchors.centerIn: parent
+                    text: root.bluetoothScanning ? "Scanning…" : "Scan"
+                    color: StyleTokens.textPrimary
+                    opacity: root.bluetoothScanning && bluetoothScanMouse.containsMouse ? 0 : 1
+                    font.pixelSize: 11
+                    font.family: root.textFontFamily
+                    font.weight: Font.DemiBold
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                    }
+                }
+
+                Text {
+                    id: bluetoothScanStopLabel
+                    anchors.centerIn: parent
+                    text: "Stop"
+                    color: StyleTokens.textPrimary
+                    opacity: root.bluetoothScanning && bluetoothScanMouse.containsMouse ? 1 : 0
+                    font.pixelSize: 11
+                    font.family: root.textFontFamily
+                    font.weight: Font.DemiBold
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                    }
+                }
+            }
+
+            MouseArea {
+                id: bluetoothScanMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                onClicked: root.provider.bluetoothAdapter.discovering = !root.bluetoothScanning
+            }
+        }
         Column {
             id: topSection
             anchors.left: parent.left
