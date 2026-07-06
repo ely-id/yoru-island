@@ -66,7 +66,7 @@ Item {
             label: "Reboot"
             icon: "󰜉"  // nf-md-restart U+F0709
             needsConfirm: true
-            command: ["hyprshutdown", "-t", "Restarting...", "--post-cmd", "systemctl reboot"]
+            command: ["systemctl", "reboot"]
             iconFontFamily: root.iconFontFamily
             textFontFamily: root.textFontFamily
             onButtonPressed: root.controlPressed()
@@ -77,7 +77,7 @@ Item {
             label: "Shutdown"
             icon: "󰐥"  // nf-md-power U+F0425
             needsConfirm: true
-            command: ["hyprshutdown", "-t", "Shutting down...", "--post-cmd", "systemctl poweroff"]
+            command: ["systemctl", "poweroff"]
             iconFontFamily: root.iconFontFamily
             textFontFamily: root.textFontFamily
             onButtonPressed: root.controlPressed()
