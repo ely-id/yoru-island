@@ -116,6 +116,10 @@ Scope {
             shellRoot.forFocusedWindow((window) => window.showLyricsWindow());
         }
 
+        function togglePet() {
+            shellRoot.forFocusedWindow((window) => window.togglePetWindow());
+        }
+
         function togglePlayer() {
             shellRoot.forFocusedWindow((window) => window.togglePlayerWindow());
         }

@@ -313,6 +313,11 @@ PanelWindow {
             islandContainer.showSessionMenu();
     }
 
+    function togglePetWindow() {
+        if (islandContainer.restingState === "pet") islandContainer.showTimeCapsule();
+        else islandContainer.showPetCapsule();
+    }
+
     function toggleWallpaperPickerWindow() {
         if (islandContainer.islandState === "wallpaper_picker")
             islandContainer.smartRestoreState();
@@ -479,6 +484,9 @@ PanelWindow {
         property bool expandedByPlayerAutoOpen: false
         property real customCapsuleWidth: 220
         property real lyricsCapsuleWidth: 220
+        property real petCapsuleWidth: 200
+        readonly property string petSheetPath: Quickshell.env("HOME") + "/.local/share/yoru-island/pet/clawd-sheet.png"
+        readonly property bool petAssetAvailable: petSheetProbe.status === Image.Ready
         property bool sideSwipeSettling: false
         property bool hoverExpandedActive: false
         property bool expandedPlayerKeyboardFocusRequested: false
@@ -533,6 +541,7 @@ PanelWindow {
                         && (workspaceOriginSide === "left" || swipeTransitionProgress < 0))
                 )
             )
+        readonly property bool petLayerVisible: !root.overviewVisible && islandState === "pet"
         readonly property bool lyricsSwipeVisible: !root.overviewVisible && (
             capsuleMouseArea.sideSwipeInteractive
             ? swipeTransitionProgress >= 0
@@ -742,6 +751,7 @@ PanelWindow {
         function normalizeRestingState(nextState) {
             if (nextState === "lyrics") return "lyrics";
             if (nextState === "custom" && hasCustomLeftItems) return "custom";
+            if (nextState === "pet" && petAssetAvailable) return "pet";
             return "normal";
         }
 
@@ -1188,6 +1198,14 @@ PanelWindow {
             showRestingCapsule("custom");
         }
 
+        function showPetCapsule() {
+            if (!petAssetAvailable) {
+                showTimeCapsule();
+                return;
+            }
+            showRestingCapsule("pet");
+        }
+
         function showLyricsCapsule() {
             showRestingCapsule("lyrics");
         }
@@ -1204,7 +1222,7 @@ PanelWindow {
         function showWorkspaceCapsule(wsId) {
             currentWs = wsId;
             if (islandState === "control_center" || islandState === "notification") return;
-            if (islandState === "custom" || islandState === "lyrics" || islandState === "session_menu") {
+            if (islandState === "custom" || islandState === "lyrics" || islandState === "session_menu" || islandState === "pet") {
                 flashWorkspaceBadge();
                 return;
             }
@@ -1295,6 +1313,12 @@ PanelWindow {
                 islandContainer.smartRestoreState();
             }
         }
+        Image {
+            id: petSheetProbe
+            source: "file://" + islandContainer.petSheetPath
+            visible: false
+            asynchronous: true
+        }
 
         function syncCustomCapsuleWidth() {
             const view = customSwipeLoader.item;
@@ -1350,6 +1374,8 @@ PanelWindow {
                     return 220;
                 case "custom":
                     return islandContainer.customCapsuleWidth;
+                case "pet":
+                    return islandContainer.petCapsuleWidth;
                 case "lyrics":
                     return islandContainer.lyricsCapsuleWidth;
                 case "session_menu":
@@ -1872,6 +1898,24 @@ PanelWindow {
                         onPreferredWidthChanged: islandContainer.syncLyricsCapsuleWidth()
                         workspaceBadgeText: String(islandContainer.currentWs)
                         workspaceBadgeVisible: islandContainer.workspaceBadgeFlashing
+                    }
+                }
+            }
+
+            Loader {
+                id: petLoader
+                anchors.fill: parent
+                active: islandContainer.petLayerVisible
+                asynchronous: false
+                visible: active
+
+                sourceComponent: Component {
+                    PetLayer {
+                        sheetSource: "file://" + islandContainer.petSheetPath
+                        restingHeight: userConfig.islandHeight
+                        hovered: capsuleMouseArea.containsMouse
+                        musicPlaying: !!(mediaController.activePlayer && mediaController.activePlayer.isPlaying)
+                        showCondition: true
                     }
                 }
             }
