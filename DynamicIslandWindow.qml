@@ -485,8 +485,7 @@ PanelWindow {
         property real customCapsuleWidth: 220
         property real lyricsCapsuleWidth: 220
         property real petCapsuleWidth: 200
-        readonly property string petSheetPath: Quickshell.env("HOME") + "/.local/share/yoru-island/pet/clawd-sheet.png"
-        readonly property bool petAssetAvailable: petSheetProbe.status === Image.Ready
+        property bool petSawNotification: false
         property bool sideSwipeSettling: false
         property bool hoverExpandedActive: false
         property bool expandedPlayerKeyboardFocusRequested: false
@@ -751,7 +750,7 @@ PanelWindow {
         function normalizeRestingState(nextState) {
             if (nextState === "lyrics") return "lyrics";
             if (nextState === "custom" && hasCustomLeftItems) return "custom";
-            if (nextState === "pet" && petAssetAvailable) return "pet";
+            if (nextState === "pet") return "pet";
             return "normal";
         }
 
@@ -1073,7 +1072,8 @@ PanelWindow {
 
         function showNotificationCapsule(appName, summary, body) {
             if (root.overviewVisible || islandState === "control_center" || islandState === "expanded" || islandState === "session_menu") return;
-
+            petSawNotification = true;
+            petNotifTimer.restart();
             const cleanedAppName = cleanNotificationText(appName);
             const cleanedSummary = cleanNotificationText(summary);
             const cleanedBody = cleanNotificationText(body);
@@ -1199,10 +1199,6 @@ PanelWindow {
         }
 
         function showPetCapsule() {
-            if (!petAssetAvailable) {
-                showTimeCapsule();
-                return;
-            }
             showRestingCapsule("pet");
         }
 
@@ -1313,11 +1309,11 @@ PanelWindow {
                 islandContainer.smartRestoreState();
             }
         }
-        Image {
-            id: petSheetProbe
-            source: "file://" + islandContainer.petSheetPath
-            visible: false
-            asynchronous: true
+
+        Timer {
+            id: petNotifTimer
+            interval: 6000
+            onTriggered: islandContainer.petSawNotification = false
         }
 
         function syncCustomCapsuleWidth() {
@@ -1911,11 +1907,13 @@ PanelWindow {
 
                 sourceComponent: Component {
                     PetLayer {
-                        sheetSource: "file://" + islandContainer.petSheetPath
-                        restingHeight: userConfig.islandHeight
+                        showCondition: true
                         hovered: capsuleMouseArea.containsMouse
                         musicPlaying: !!(mediaController.activePlayer && mediaController.activePlayer.isPlaying)
-                        showCondition: true
+                        batteryLow: islandContainer.batteryCapacity <= 20 && !islandContainer.isCharging
+                        notificationRecent: islandContainer.petSawNotification
+                        cavaLevels: islandContainer.cavaLevels
+                        restingHeight: userConfig.islandHeight
                     }
                 }
             }
