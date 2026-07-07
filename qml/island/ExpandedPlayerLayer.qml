@@ -758,7 +758,7 @@ Item {
 
                         width: (parent.width - 8) / 2
                         height: parent.height
-                        label: "时"
+                        label: "h"
                         text: "0"
                         textFontFamily: timerRoot.textFontFamily
                         onKeyboardFocusRequested: {
@@ -776,7 +776,7 @@ Item {
 
                         width: (parent.width - 8) / 2
                         height: parent.height
-                        label: "分"
+                        label: "m"
                         text: "05"
                         textFontFamily: timerRoot.textFontFamily
                         onKeyboardFocusRequested: {

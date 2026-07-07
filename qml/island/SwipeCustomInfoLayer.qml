@@ -90,7 +90,7 @@ Item {
         x: itemsX
         height: parent.height
         anchors.verticalCenter: parent.verticalCenter
-        opacity: clampedProgress
+        opacity: Math.min(1, clampedProgress * 5)
         spacing: groupSpacing
 
         Repeater {
@@ -283,7 +283,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         text: timeText
         color: "white"
-        opacity: 1 - clampedProgress
+        opacity: Math.min(1, (1 - clampedProgress) * 5)
         font.pixelSize: root.textPixelSize + 1
         font.family: timeFontFamily
         font.weight: Font.Bold

@@ -1306,11 +1306,13 @@ PanelWindow {
         }
         Timer {
             id: hoverExpandDelayTimer
-            interval: 350
+            interval: 700
             repeat: false
             onTriggered: {
                 if (!capsuleMouseArea.containsMouse) return;
                 if (!root.hoverExpandEnabled) return;
+                if (capsuleMouseArea.pressed || capsuleMouseArea.swipeArmed
+                        || islandContainer.sideSwipeSettling) return;
 
                 const current = islandContainer.islandState;
                 const target = root.configuredHoverExpandAction === 2 ? "control_center" : "expanded";

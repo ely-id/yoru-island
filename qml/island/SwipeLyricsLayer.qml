@@ -161,7 +161,7 @@ Item {
         width: textWidth
         text: previousLyricText
         color: "white"
-        opacity: clampedProgress * (1 - lyricChangeProgress)
+        opacity: Math.min(1, clampedProgress * 5) * (1 - lyricChangeProgress)
         font.pixelSize: textPixelSize
         font.family: textFontFamily
         font.weight: Font.DemiBold
@@ -178,7 +178,7 @@ Item {
         width: textWidth
         text: activeLyricText
         color: "white"
-        opacity: clampedProgress * (previousLyricText !== "" ? lyricChangeProgress : 1)
+        opacity: Math.min(1, clampedProgress * 5) * (previousLyricText !== "" ? lyricChangeProgress : 1)
         font.pixelSize: textPixelSize
         font.family: textFontFamily
         font.weight: Font.DemiBold
@@ -195,7 +195,7 @@ Item {
         width: textWidth
         text: timeText
         color: "white"
-        opacity: 1 - clampedProgress
+        opacity: Math.min(1, (1 - clampedProgress) * 5)
         font.pixelSize: textPixelSize + 1
         font.family: timeFontFamily
         font.weight: Font.Bold
