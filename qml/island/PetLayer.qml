@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 
-// Cena do pet — corpo + bola + bolhas + patrulha.
+// Cena do pet
 Item {
     id: root
 

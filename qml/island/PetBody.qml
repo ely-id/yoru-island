@@ -2,9 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 
-// Clawd procedural — marionete de primitivas.
-// Canais animáveis: bounce, danceBounce, squash, lean, eyeOpen, eyeLookX, armLift, walkCycle.
-// Os loops no fim do arquivo escrevem nos canais; a figura só lê.
+// Corpo do pet
 Item {
     id: root
 
@@ -20,6 +18,7 @@ Item {
     property real eyeOpen: 1
     property real eyeLookX: 0
     property real armLift: 0
+    property real armLiftL: 0
     property real walkCycle: 0
 
     readonly property bool moving: mood === "walk" || mood === "run" || mood === "ball"
@@ -31,8 +30,9 @@ Item {
         lean = mood === "bubbles" ? -4 : 0;
         squash = 1;
         armLift = 0;
+        armLiftL = 0;
         eyeLookX = 0;
-        eyeOpen = mood === "sleeping" ? 0.12 : (mood === "sleepy" ? 0.45 : 1);
+        eyeOpen = mood === "sleeping" ? 0.12 : (mood === "sleepy" ? 0.45 : (mood === "catnap" ? 0.25 : 1));
     }
 
     // ---------- figura ----------
@@ -57,7 +57,7 @@ Item {
             }
         ]
 
-        // pernas (4 tocos; ciclo de passos quando em movimento)
+        // pernas
         Repeater {
             model: 4
             delegate: Rectangle {
@@ -74,14 +74,20 @@ Item {
             }
         }
 
-        // braços-toco
+        // bracinhos
         Rectangle {
+            id: armL
             width: 3 * root.u
             height: 5 * root.u
             radius: root.u
             color: "#FC7E03"
             x: -2.2 * root.u
             y: 8 * root.u
+            transform: Rotation {
+                origin.x: armL.width / 2
+                origin.y: 0.8 * root.u
+                angle: root.armLiftL
+            }
         }
         Rectangle {
             id: armR
@@ -264,11 +270,36 @@ Item {
         }
     }
 
+    // z (catnap)
+    Text {
+        id: napZ
+        visible: root.mood === "catnap"
+        text: "z"
+        color: "#8E8E93"
+        font.pixelSize: 3 * root.u
+        font.bold: true
+        x: parent.width / 2 + 5 * root.u
+        y: 4 * root.u
+
+        SequentialAnimation {
+            running: napZ.visible
+            loops: Animation.Infinite
+            ParallelAnimation {
+                NumberAnimation { target: napZ; property: "y"; from: 7 * root.u; to: 2 * root.u; duration: 2000; easing.type: Easing.OutQuad }
+                SequentialAnimation {
+                    NumberAnimation { target: napZ; property: "opacity"; from: 0; to: 1; duration: 700 }
+                    PauseAnimation { duration: 600 }
+                    NumberAnimation { target: napZ; property: "opacity"; to: 0; duration: 700 }
+                }
+            }
+        }
+    }
+
     // ---------- loops de humor ----------
 
     // respiração normal
     SequentialAnimation {
-        running: ["idle", "bubbles", "quirk", "sad", "wave", "ball"].indexOf(root.mood) !== -1
+        running: ["idle", "bubbles", "quirk", "peek", "scratch", "sad", "wave", "ball"].indexOf(root.mood) !== -1
         loops: Animation.Infinite
         NumberAnimation { target: root; property: "squash"; to: 0.965; duration: 1300; easing.type: Easing.InOutSine }
         NumberAnimation { target: root; property: "squash"; to: 1; duration: 1300; easing.type: Easing.InOutSine }
@@ -284,7 +315,7 @@ Item {
 
     // piscada irregular
     Timer {
-        running: root.mood !== "sleepy" && root.mood !== "sleeping"
+        running: root.mood !== "sleepy" && root.mood !== "sleeping" && root.mood !== "catnap" && root.mood !== "stretch"
         repeat: true
         interval: 2400 + Math.random() * 3600
         onTriggered: {
@@ -348,7 +379,7 @@ Item {
         PauseAnimation { duration: 120 }
     }
 
-    // gingado (dance) — o bounce vem dos cavaLevels, o balanço vem daqui
+    // gingado (dance)
     SequentialAnimation {
         running: root.mood === "dance"
         loops: Animation.Infinite
@@ -396,5 +427,67 @@ Item {
         PauseAnimation { duration: 420 }
         NumberAnimation { target: root; property: "squash"; to: 1.06; duration: 160; easing.type: Easing.OutQuad }
         NumberAnimation { target: root; property: "squash"; to: 1; duration: 200; easing.type: Easing.InQuad }
+    }
+
+    // olhar o usuário (peek)
+    SequentialAnimation {
+        running: root.mood === "peek"
+        loops: Animation.Infinite
+        NumberAnimation { target: root; property: "lean"; to: 6; duration: 500; easing.type: Easing.OutCubic }
+        PauseAnimation { duration: 900 }
+        NumberAnimation { target: root; property: "lean"; to: 0; duration: 450; easing.type: Easing.InOutSine }
+        PauseAnimation { duration: 500 }
+        NumberAnimation { target: root; property: "lean"; to: -6; duration: 500; easing.type: Easing.OutCubic }
+        PauseAnimation { duration: 900 }
+        NumberAnimation { target: root; property: "lean"; to: 0; duration: 450; easing.type: Easing.InOutSine }
+        PauseAnimation { duration: 500 }
+    }
+
+    // cochilo (catnap)
+    SequentialAnimation {
+        running: root.mood === "catnap"
+        loops: Animation.Infinite
+        NumberAnimation { target: root; property: "squash"; to: 0.8; duration: 1500; easing.type: Easing.InOutSine }
+        NumberAnimation { target: root; property: "squash"; to: 0.77; duration: 1700; easing.type: Easing.InOutSine }
+    }
+
+    // coçar (scratch)
+    SequentialAnimation {
+        running: root.mood === "scratch"
+        loops: Animation.Infinite
+        ParallelAnimation {
+            NumberAnimation { target: root; property: "armLift"; to: -32; duration: 200; easing.type: Easing.OutCubic }
+            NumberAnimation { target: root; property: "lean"; to: -3; duration: 200; easing.type: Easing.OutSine }
+        }
+        SequentialAnimation {
+            loops: 8
+            NumberAnimation { target: root; property: "armLift"; to: -44; duration: 55 }
+            NumberAnimation { target: root; property: "armLift"; to: -28; duration: 55 }
+        }
+        ParallelAnimation {
+            NumberAnimation { target: root; property: "armLift"; to: 0; duration: 240; easing.type: Easing.InCubic }
+            NumberAnimation { target: root; property: "lean"; to: 0; duration: 240; easing.type: Easing.OutSine }
+        }
+        PauseAnimation { duration: 900 }
+    }
+
+    // espreguiçar (stretch)
+    SequentialAnimation {
+        running: root.mood === "stretch"
+        loops: Animation.Infinite
+        ParallelAnimation {
+            NumberAnimation { target: root; property: "armLift"; to: -155; duration: 620; easing.type: Easing.OutCubic }
+            NumberAnimation { target: root; property: "armLiftL"; to: 155; duration: 620; easing.type: Easing.OutCubic }
+            NumberAnimation { target: root; property: "squash"; to: 1.12; duration: 620; easing.type: Easing.OutCubic }
+            NumberAnimation { target: root; property: "eyeOpen"; to: 0.1; duration: 500; easing.type: Easing.OutCubic }
+        }
+        PauseAnimation { duration: 700 }
+        ParallelAnimation {
+            NumberAnimation { target: root; property: "armLift"; to: 0; duration: 520; easing.type: Easing.InOutSine }
+            NumberAnimation { target: root; property: "armLiftL"; to: 0; duration: 520; easing.type: Easing.InOutSine }
+            NumberAnimation { target: root; property: "squash"; to: 1; duration: 520; easing.type: Easing.InOutSine }
+            NumberAnimation { target: root; property: "eyeOpen"; to: 1; duration: 400; easing.type: Easing.OutCubic }
+        }
+        PauseAnimation { duration: 1400 }
     }
 }
