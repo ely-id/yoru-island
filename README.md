@@ -55,71 +55,68 @@ It's built with Quickshell, QML, and C++/Qt 6. Most of the effort went into maki
 <table>
   <tr>
     <td width="50%">
-      <h3 align="center">Clock Mode</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/clock.png" width="100%" alt="Clock mode preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/mp.png" width="100%" alt="Music player" />
     </td>
     <td width="50%">
-      <h3 align="center">System Notifications</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/msg.png" width="100%" alt="System notification preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/msg.png" width="100%" alt="Message preview" />
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <h3 align="center">Control Center</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/cc_1.png" width="100%" alt="Control center preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/timer.png" width="100%" alt="Timer" />
     </td>
     <td width="50%">
-      <h3 align="center">Music Player</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/player.png" width="100%" alt="Music player preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/wallpaper%20switcher.png" width="100%" alt="Wallpaper switcher" />
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <h3 align="center">Bluetooth Connection Status</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/onBTConnected.png" width="100%" alt="Bluetooth connection status preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/cc_2.png" width="100%" alt="Control center" />
     </td>
     <td width="50%">
-      <h3 align="center">Workspace Overview</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/overview.png" width="100%" alt="Workspace overview preview">
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <h3 align="center">Lyrics</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/lyrics.png" width="100%" alt="Lyrics preview">
-    </td>
-    <td width="50%">
-      <h3 align="center">Custom Page</h3>
-      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/custom.png" width="100%" alt="Custom page preview">
+      <img src="https://raw.githubusercontent.com/enhaoswen/Tide-island/display/Preview/Workspace overview_2.png" width="100%" alt="Workspace overview" />
     </td>
   </tr>
 </table>
+
 
 <br>
 
 ## Features
 
-### Gesture Navigation
+- Clock
+- Music player
+- Control Center
+- Timer
+- Lyrics displayer
+- Wallpaper switcher
+- Workspace overview
+- Custom page
 
-| Input                                  | Behavior                                      |
-| -------------------------------------- | --------------------------------------------- |
-| Left click                             | Open music player                             |
-| Right click                            | Open control center                           |
-| Swipe left                             | Show custom page                              |
-| Swipe right                            | Show lyrics                                   |
-| Two-finger horizontal / vertical swipe | Switch between time, lyrics, and custom views |
-| `Super + Tab`                          | Open workspace overview                       |
+
 
 ### System Feedback
-
-Tide Island can display temporary feedback for:
 
 - Volume changes
 - Brightness changes
 - Battery charging / discharging
 - Workspace changes
-- Media playback
+- Media playback (optional)
 - System notifications
+
+
+
+### Custom Page
+
+- Time
+- Date
+- Battery
+- Volume
+- CPU usage
+- Current workspace
+- Memory usage
+- Brightness
+- Cava
 
 <br>
 
@@ -157,7 +154,7 @@ cd Tide-island
 
 Tide Island provides a systemd user service.
 
-Enable and start it immediately:
+Enable and start it immediately (Recommended):
 
 ```bash
 systemctl --user enable --now tide-island
@@ -179,6 +176,12 @@ If the systemd service is already enabled, you do not need to add `exec-once`.
 
 <br>
 
+## Configuration
+
+Search `Tide Island Settings` in any application launcher
+
+
+
 ## Common Commands
 
 #### Restart after editing the configuration:
@@ -199,189 +202,6 @@ systemctl --user stop tide-island
 journalctl --user -u tide-island -f
 ```
 
-#### Check whether configuration files are missing:
-
-```bash
-tide-island-setup --check
-```
-
-#### Set up missing configuration files:
-
-```bash
-tide-island-setup --launch
-```
-
-#### Launch setup wizard:
-
-```bash
-tide-island-setup --wizard
-```
-
-#### Configure Hyprland shortcuts:
-
-```bash
-tide-island-setup --shortcuts
-```
-
-## Configuration
-
-you can adjust configuration to your liking in `~/.config/tide-island/userconfig.json`.
-
-<br>
-
-You can also change the key binding.
-
-| Action                    | Behavior                              |
-| ------------------------- | ------------------------------------- |
-| `""` / `"none"`           | Do nothing                            |
-| `"toggleExpandedPlayer"`  | Show/hide the expanded music player   |
-| `"openExpandedPlayer"`    | Open the expanded music player        |
-| `"closeExpandedPlayer"`   | Close the expanded music player       |
-| `"toggleControlCenter"`   | Show/hide the control center panel    |
-| `"openControlCenter"`     | Open the control center panel         |
-| `"closeControlCenter"`    | Close the control center panel        |
-| `"toggleOverview"`        | Show/hide the workspace overview      |
-| `"openOverview"`          | Open the workspace overview           |
-| `"closeOverview"`         | Close the workspace overview          |
-| `"toggleLyrics"`          | Show/hide the lyrics capsule          |
-| `"showLyrics"`            | Show the lyrics capsule               |
-| `"showTime"`              | Show the time capsule                 |
-| `"restoreRestingCapsule"` | Restore default resting capsule state |
-
-Example:
-
-```
-"dynamicIslandPrimaryButton": 1,
-"dynamicIslandPrimaryAction": "toggleExpandedPlayer",
-"dynamicIslandSecondaryButton": 3,
-"dynamicIslandSecondaryAction": "toggleControlCenter"
-```
-
-1 = Left click, 2 = Middle click, 3 = Right click
-
-<br>
-
-## Shortcuts
-
-Shortcuts are optional. New users can run the helper and choose whether to install all recommended shortcuts, pick them one by one, print manual snippets, or skip them:
-
-```bash
-tide-island-setup --shortcuts
-```
-
-The helper can write to `~/.config/hypr/hyprland.conf` or print/write `hyprland.bind(...)` lines for a Lua-based config. It skips any shortcut whose key combination is already used by another command, so it will not silently overwrite your existing binds.
-
-Recommended shortcuts:
-
-| Shortcut | Action |
-|---|---|
-| `Super + Tab` | Toggle workspace overview |
-| `Super + Right` | Show lyrics |
-| `Super + Left` | Show custom page |
-| `Super + Down` | Show clock |
-| `Super + M` | Toggle music player |
-| `Super + C` | Toggle control center |
-| `Super + W` | Toggle wallpaper library |
-
-Shortcuts for `~/.config/hypr/hyprland.conf`. 
-
-```conf
-bind = SUPER, TAB, exec, /usr/bin/quickshell ipc -p /usr/share/tide-island call overview toggle
-bind = SUPER, right, exec, /usr/bin/quickshell ipc -p /usr/share/tide-island call tide showLyrics
-bind = SUPER, left, exec, /usr/bin/quickshell ipc -p /usr/share/tide-island call tide showCustom
-bind = SUPER, down, exec, /usr/bin/quickshell ipc -p /usr/share/tide-island call tide showClock
-bind = SUPER, M, exec, /usr/bin/quickshell ipc -p /usr/share/tide-island call tide togglePlayer
-bind = SUPER, C, exec, /usr/bin/quickshell ipc -p /usr/share/tide-island call tide toggleControlCenter
-bind = SUPER, W, exec, /usr/bin/quickshell ipc -p /usr/share/tide-island call tide toggleWallpaperPicker
-```
-
-Shortcuts for `~/.config/hypr/hyprland.lua`, if your Lua config already provides `hyprland.bind(...)`.
-
-```lua
-hyprland.bind("SUPER", "TAB", "exec", "/usr/bin/quickshell ipc -p /usr/share/tide-island call overview toggle")
-hyprland.bind("SUPER", "right", "exec", "/usr/bin/quickshell ipc -p /usr/share/tide-island call tide showLyrics")
-hyprland.bind("SUPER", "left", "exec", "/usr/bin/quickshell ipc -p /usr/share/tide-island call tide showCustom")
-hyprland.bind("SUPER", "down", "exec", "/usr/bin/quickshell ipc -p /usr/share/tide-island call tide showClock")
-hyprland.bind("SUPER", "M", "exec", "/usr/bin/quickshell ipc -p /usr/share/tide-island call tide togglePlayer")
-hyprland.bind("SUPER", "C", "exec", "/usr/bin/quickshell ipc -p /usr/share/tide-island call tide toggleControlCenter")
-hyprland.bind("SUPER", "W", "exec", "/usr/bin/quickshell ipc -p /usr/share/tide-island call tide toggleWallpaperPicker")
-```
-
-For Lua configs based on `hl.bind(..., hl.dsp.exec_cmd(...))`, run `tide-island-setup --shortcuts`. The helper detects this style and uses non-conflicting defaults such as `Super + Shift + Right` for lyrics.
-
-The wallpaper library shortcut opens the built-in wallpaper picker. Applying the selected wallpaper uses `awww`, so install `awww` if you want wallpaper changes to apply from the picker.
-
-<br>
-
-The default user configuration file is located at:
-
-```text
-~/.config/tide-island/userconfig.json
-```
-
-After editing the configuration, restart the service:
-
-```bash
-systemctl --user restart tide-island
-```
-
-<br>
-
-## Dependencies
-
-### Required
-
-- Hyprland
-- Quickshell
-- Qt 6
-- `hyprctl`
-- `wpctl`
-- `brightnessctl`
-- `pactl`
-- `dbus-monitor`
-- UPower
-- BlueZ
-- `libudev`
-
-### Optional / feature-dependent
-
-- NetworkManager or iwd for Wi-Fi integration
-- A Nerd Font for icons
-- `awww` for applying wallpapers from the wallpaper picker
-- CAVA for audio visualization
-- MPRIS-compatible music player for media integration
-
-<br>
-
-## Troubleshooting
-
-### Tide Island does not start
-
-Check logs:
-
-```bash
-journalctl --user -u tide-island -f
-```
-
-Make sure Hyprland, Quickshell, and required command-line tools are installed.
-
-### Music information does not show
-
-Check whether your player exposes MPRIS:
-
-```bash
-busctl --user list | grep -i mpris
-```
-
-### Wi-Fi or Bluetooth information does not show
-
-Make sure the relevant services are running:
-
-```bash
-systemctl status NetworkManager
-systemctl status bluetooth
-```
-
 <br>
 
 ## Contributing
@@ -394,6 +214,7 @@ Thanks to:
 
 - [@end-4](https://github.com/end-4) for the workspace overview design inspiration
 - [@gozhuimeng](https://github.com/gozhuimeng) for improving the lyrics backend
+- [@LatifKovani](https://github.com/LatifKovani) for a significant improvement
 
 ## Community
 

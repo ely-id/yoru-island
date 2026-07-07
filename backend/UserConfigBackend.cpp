@@ -62,6 +62,16 @@ int jsonInt(const QJsonObject &object, QLatin1String key, int fallback)
     return std::isfinite(number) ? qRound(number) : fallback;
 }
 
+double jsonDouble(const QJsonObject &object, QLatin1String key, double fallback)
+{
+    const QJsonValue value = object.value(key);
+    if (!value.isDouble())
+        return fallback;
+
+    const double number = value.toDouble();
+    return std::isfinite(number) ? number : fallback;
+}
+
 QVariantList jsonArray(const QJsonObject &object, QLatin1String key, const QVariantList &fallback)
 {
     const QJsonValue value = object.value(key);
@@ -130,6 +140,56 @@ QString UserConfigBackend::wallpaperLibraryPath() const
     return m_wallpaperLibraryPath;
 }
 
+bool UserConfigBackend::wallpaperPywalEnabled() const
+{
+    return m_wallpaperPywalEnabled;
+}
+
+QString UserConfigBackend::wallpaperTransitionType() const
+{
+    return m_wallpaperTransitionType;
+}
+
+int UserConfigBackend::wallpaperTransitionStep() const
+{
+    return m_wallpaperTransitionStep;
+}
+
+double UserConfigBackend::wallpaperTransitionDuration() const
+{
+    return m_wallpaperTransitionDuration;
+}
+
+int UserConfigBackend::wallpaperTransitionFps() const
+{
+    return m_wallpaperTransitionFps;
+}
+
+int UserConfigBackend::wallpaperTransitionAngle() const
+{
+    return m_wallpaperTransitionAngle;
+}
+
+QString UserConfigBackend::wallpaperTransitionPosition() const
+{
+    return m_wallpaperTransitionPosition;
+}
+
+QString UserConfigBackend::wallpaperTransitionBezier() const
+{
+    return m_wallpaperTransitionBezier;
+}
+
+QString UserConfigBackend::wallpaperTransitionWave() const
+{
+    return m_wallpaperTransitionWave;
+}
+
+bool UserConfigBackend::wallpaperTransitionInvertY() const
+{
+    return m_wallpaperTransitionInvertY;
+}
+
 QString UserConfigBackend::iconFontFamily() const
 {
     return m_iconFontFamily;
@@ -193,11 +253,6 @@ const QVariantList &UserConfigBackend::dynamicIslandLeftSwipeItems() const
 bool UserConfigBackend::disableAutoExpandOnTrackChange() const
 {
     return m_disableAutoExpandOnTrackChange;
-}
-
-bool UserConfigBackend::enableHoverExpand() const
-{
-    return m_enableHoverExpand;
 }
 
 int UserConfigBackend::hoverExpandAction() const
@@ -336,12 +391,22 @@ void UserConfigBackend::loadConfig()
 
     updateField(this, m_wallpaperPath, jsonString(configObject, QLatin1String("wallpaperPath"), m_defaultWallpaperPath), &UserConfigBackend::wallpaperPathChanged);
     updateField(this, m_wallpaperLibraryPath, jsonString(configObject, QLatin1String("wallpaperLibraryPath"), QString()), &UserConfigBackend::wallpaperLibraryPathChanged);
+    updateField(this, m_wallpaperPywalEnabled, jsonBool(configObject, QLatin1String("wallpaperPywalEnabled"), false), &UserConfigBackend::wallpaperPywalEnabledChanged);
+    updateField(this, m_wallpaperTransitionType, jsonString(configObject, QLatin1String("wallpaperTransitionType"), QStringLiteral("center")), &UserConfigBackend::wallpaperTransitionTypeChanged);
+    updateField(this, m_wallpaperTransitionStep, jsonInt(configObject, QLatin1String("wallpaperTransitionStep"), 5), &UserConfigBackend::wallpaperTransitionStepChanged);
+    updateField(this, m_wallpaperTransitionDuration, jsonDouble(configObject, QLatin1String("wallpaperTransitionDuration"), 3.0), &UserConfigBackend::wallpaperTransitionDurationChanged);
+    updateField(this, m_wallpaperTransitionFps, jsonInt(configObject, QLatin1String("wallpaperTransitionFps"), 60), &UserConfigBackend::wallpaperTransitionFpsChanged);
+    updateField(this, m_wallpaperTransitionAngle, jsonInt(configObject, QLatin1String("wallpaperTransitionAngle"), 45), &UserConfigBackend::wallpaperTransitionAngleChanged);
+    updateField(this, m_wallpaperTransitionPosition, jsonString(configObject, QLatin1String("wallpaperTransitionPosition"), QStringLiteral("center")), &UserConfigBackend::wallpaperTransitionPositionChanged);
+    updateField(this, m_wallpaperTransitionBezier, jsonString(configObject, QLatin1String("wallpaperTransitionBezier"), QStringLiteral(".54,0,.34,.99")), &UserConfigBackend::wallpaperTransitionBezierChanged);
+    updateField(this, m_wallpaperTransitionWave, jsonString(configObject, QLatin1String("wallpaperTransitionWave"), QStringLiteral("20,20")), &UserConfigBackend::wallpaperTransitionWaveChanged);
+    updateField(this, m_wallpaperTransitionInvertY, jsonBool(configObject, QLatin1String("wallpaperTransitionInvertY"), false), &UserConfigBackend::wallpaperTransitionInvertYChanged);
     updateField(this, m_iconFontFamily, jsonString(configObject, QLatin1String("iconFontFamily"), QStringLiteral("JetBrainsMono Nerd Font")), &UserConfigBackend::iconFontFamilyChanged);
     updateField(this, m_textFontFamily, jsonString(configObject, QLatin1String("textFontFamily"), QStringLiteral("Inter Display")), &UserConfigBackend::textFontFamilyChanged);
     updateField(this, m_heroFontFamily, jsonString(configObject, QLatin1String("heroFontFamily"), QStringLiteral("Inter Display")), &UserConfigBackend::heroFontFamilyChanged);
     updateField(this, m_timeFontFamily, jsonString(configObject, QLatin1String("timeFontFamily"), QStringLiteral("Inter Display")), &UserConfigBackend::timeFontFamilyChanged);
     updateField(this, m_tlpSudoPassword, jsonString(configObject, QLatin1String("tlpSudoPassword"), m_defaultTlpSudoPassword), &UserConfigBackend::tlpSudoPasswordChanged);
-    updateField(this, m_tlpPermissionMode, jsonString(configObject, QLatin1String("tlpPermissionMode"), QStringLiteral("ask")), &UserConfigBackend::tlpPermissionModeChanged);
+    updateField(this, m_tlpPermissionMode, jsonString(configObject, QLatin1String("tlpPermissionMode"), QStringLiteral("skip")), &UserConfigBackend::tlpPermissionModeChanged);
     updateField(this, m_workspaceOverviewWindowDragButton, jsonInt(configObject, QLatin1String("workspaceOverviewWindowDragButton"), 1), &UserConfigBackend::workspaceOverviewWindowDragButtonChanged);
     updateField(this, m_dynamicIslandPrimaryButton, jsonInt(configObject, QLatin1String("dynamicIslandPrimaryButton"), 1), &UserConfigBackend::dynamicIslandPrimaryButtonChanged);
     updateField(this, m_dynamicIslandPrimaryAction, jsonString(configObject, QLatin1String("dynamicIslandPrimaryAction"), QStringLiteral("toggleExpandedPlayer")), &UserConfigBackend::dynamicIslandPrimaryActionChanged);
@@ -349,7 +414,6 @@ void UserConfigBackend::loadConfig()
     updateField(this, m_dynamicIslandSecondaryAction, jsonString(configObject, QLatin1String("dynamicIslandSecondaryAction"), QStringLiteral("toggleControlCenter")), &UserConfigBackend::dynamicIslandSecondaryActionChanged);
     updateField(this, m_dynamicIslandLeftSwipeItems, jsonArray(configObject, QLatin1String("dynamicIslandLeftSwipeItems"), defaultDynamicIslandLeftSwipeItems()), &UserConfigBackend::dynamicIslandLeftSwipeItemsChanged);
     updateField(this, m_disableAutoExpandOnTrackChange, jsonBool(configObject, QLatin1String("disableAutoExpandOnTrackChange"), false), &UserConfigBackend::disableAutoExpandOnTrackChangeChanged);
-    updateField(this, m_enableHoverExpand, jsonBool(configObject, QLatin1String("enableHoverExpand"), false), &UserConfigBackend::enableHoverExpandChanged);
     updateField(this, m_hoverExpandAction, jsonInt(configObject, QLatin1String("hoverExpandAction"), 1), &UserConfigBackend::hoverExpandActionChanged);
     updateField(this, m_islandWidth, jsonInt(configObject, QLatin1String("islandWidth"), 140), &UserConfigBackend::islandWidthChanged);
     updateField(this, m_islandHeight, jsonInt(configObject, QLatin1String("islandHeight"), 38), &UserConfigBackend::islandHeightChanged);

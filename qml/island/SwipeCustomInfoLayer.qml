@@ -30,14 +30,19 @@ Item {
     property int textPixelSize: userConfig.bodyFontSize
     property int iconPixelSize: userConfig.iconFontSize
     property int iconBoxSize: 18
-    property int batteryIconWidth: 30
-    property int batteryIconHeight: 15
-    property int batteryTipWidth: 3
-    property int batteryTipHeight: 7
-    property int batteryOuterRadius: 5
+    property int batteryIconWidth: 37
+    property int batteryIconHeight: 17
+    property int batteryFontSize: 13
+    property int batteryFontSizeCharging: 12
+    property int batteryBoltSize: 10
+    property int batteryTipWidth: 2
+    property int batteryTipHeight: 5
+    property int batteryOuterRadius: 6
     property int batteryInnerRadius: 3
     property real iconVerticalOffset: 1
     property int recordingDotSpacing: 12
+    property real batteryChargingXOffset: 0
+    property real batteryChargingYOffset: 0
     readonly property string chargingIconGlyph: "\uf0e7"
 
     readonly property real clampedProgress: Math.max(0, Math.min(1, -transitionProgress))
@@ -98,8 +103,9 @@ Item {
                 readonly property bool hasLeadingVisual: hasIcon || isBattery
                 implicitWidth: isCava
                     ? cavaBars.implicitWidth
-                    : (isBattery && modelData.isCharging ? (chargingIcon.implicitWidth + 4) : 0)
-                      + leadingVisual.width + (hasLeadingVisual ? root.iconSpacing : 0) + valueText.implicitWidth
+                    : isBattery
+                      ? root.batteryIconWidth
+                      : leadingVisual.width + (hasLeadingVisual ? root.iconSpacing : 0) + valueText.implicitWidth
                 implicitHeight: root.height
                 width: implicitWidth
                 height: implicitHeight
@@ -111,24 +117,12 @@ Item {
                     levels: root.cavaLevels
                 }
 
-                Text {
-                    id: chargingIcon
-                    visible: parent.isBattery && modelData.isCharging
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.chargingIconGlyph
-                    color: "white"
-                    font.pixelSize: root.iconPixelSize - 1
-                    font.family: root.iconFontFamily
-                }
-
                 Item {
                     id: leadingVisual
                     visible: !parent.isCava && parent.hasLeadingVisual
                     width: parent.isBattery ? root.batteryIconWidth : (parent.hasIcon ? root.iconBoxSize : 0)
                     height: parent.isBattery ? Math.max(root.batteryIconHeight, valueText.implicitHeight) : root.iconBoxSize
-                    anchors.left: parent.isBattery ? valueText.right : parent.left
-                    anchors.leftMargin: parent.isBattery ? root.iconSpacing : 0
+                    anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
 
                     Text {
@@ -142,32 +136,47 @@ Item {
                     }
 
                     Item {
+                        id: batteryShape
                         visible: parent.parent.isBattery
                         width: root.batteryIconWidth
                         height: root.batteryIconHeight
                         anchors.verticalCenter: parent.verticalCenter
 
+                        readonly property real level: Math.max(0, Math.min(100, Number(modelData.level || 0)))
+                        readonly property bool charging: modelData.isCharging || false
+                        readonly property bool roundedEnd: level >= 85
+                        readonly property color bodyColor: {
+                            if (charging)
+                                return "white";
+                            if (level <= 20)
+                                return "#ff3b30";
+                            return "white";
+                        }
+                        readonly property color emptyColor: Qt.rgba(1, 1, 1, 0.56)
+
                         Rectangle {
-                            anchors.fill: parent
-                            anchors.rightMargin: root.batteryTipWidth
+                            id: batteryBody
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - root.batteryTipWidth - 1
+                            height: parent.height
                             radius: root.batteryOuterRadius
-                            color: "transparent"
-                            border.color: "#8e8e93"
-                            border.width: 1
+                            color: batteryShape.emptyColor
+                            border.width: 0
+                            clip: true
 
                             Rectangle {
+                                id: batteryFill
                                 anchors.left: parent.left
                                 anchors.top: parent.top
                                 anchors.bottom: parent.bottom
-                                anchors.margins: 2
-                                radius: root.batteryInnerRadius
-                                width: Math.max(0, (parent.width - 4) * (Math.max(0, Math.min(100, Number(modelData.level || 0))) / 100.0))
-                                color: {
-                                    const level = Math.max(0, Math.min(100, Number(modelData.level || 0)));
-                                    if (level <= 10) return "#ff3b30";
-                                    if (level <= 20) return "#ffcc00";
-                                    return "#34c759";
-                                }
+                                radius: 0
+                                topLeftRadius: root.batteryOuterRadius
+                                bottomLeftRadius: root.batteryOuterRadius
+                                topRightRadius: batteryShape.roundedEnd ? root.batteryOuterRadius : 0
+                                bottomRightRadius: batteryShape.roundedEnd ? root.batteryOuterRadius : 0
+                                width: Math.max(root.batteryOuterRadius * 2, parent.width * (batteryShape.level / 100.0))
+                                color: batteryShape.bodyColor
 
                                 Behavior on width {
                                     NumberAnimation {
@@ -175,6 +184,50 @@ Item {
                                         easing.type: Easing.OutCubic
                                     }
                                 }
+                                Behavior on color {
+                                    ColorAnimation { duration: 300 }
+                                }
+                            }
+
+                            Row {
+                                visible: batteryShape.charging
+                                anchors.centerIn: parent
+                                anchors.horizontalCenterOffset: root.batteryChargingXOffset
+                                anchors.verticalCenterOffset: root.batteryChargingYOffset
+                                spacing: 2
+                                z: 2
+
+                                Text {
+                                    text: batteryShape.level + ""
+                                    color: "black"
+                                    font.pixelSize: root.batteryFontSizeCharging
+                                    font.family: root.textFontFamily
+                                    font.weight: Font.DemiBold
+                                    verticalAlignment: Text.AlignVCenter
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    text: root.chargingIconGlyph
+                                    color: "#242424"
+                                    font.pixelSize: root.batteryBoltSize
+                                    font.family: root.iconFontFamily
+                                    verticalAlignment: Text.AlignVCenter
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            Text {
+                                visible: !batteryShape.charging
+                                anchors.centerIn: parent
+                                text: batteryShape.level + ""
+                                color: batteryShape.level <= 20 ? "white" : "black"
+                                font.pixelSize: root.batteryFontSize
+                                font.family: root.textFontFamily
+                                font.weight: batteryShape.level <= 20 ? Font.Bold : Font.DemiBold
+                                verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
+                                z: 2
                             }
                         }
 
@@ -182,28 +235,29 @@ Item {
                             width: root.batteryTipWidth
                             height: root.batteryTipHeight
                             radius: Math.round(root.batteryTipWidth / 2)
-                            color: "#8e8e93"
-                            anchors.right: parent.right
+                            color: batteryShape.level >= 100 ? batteryShape.bodyColor : batteryShape.emptyColor
+                            anchors.left: batteryBody.right
+                            anchors.leftMargin: 1
                             anchors.verticalCenter: parent.verticalCenter
+
+                            Behavior on color {
+                                ColorAnimation { duration: 300 }
+                            }
                         }
                     }
                 }
 
                 Text {
-                    visible: !parent.isCava
                     id: valueText
-                    anchors.left: parent.isBattery 
-                        ? (chargingIcon.visible ? chargingIcon.right : parent.left)
-                        : leadingVisual.right
-                    anchors.leftMargin: (parent.isBattery && chargingIcon.visible) 
-                        ? 4 
-                        : (parent.hasLeadingVisual && !parent.isBattery ? root.iconSpacing : 0)
+                    visible: !parent.isCava && !parent.isBattery
+                    anchors.left: leadingVisual.right
+                    anchors.leftMargin: parent.hasLeadingVisual && !parent.isBattery ? root.iconSpacing : 0
                     anchors.verticalCenter: parent.verticalCenter
                     text: modelData.text || ""
                     color: "white"
                     font.pixelSize: root.textPixelSize
                     font.family: root.textFontFamily
-                    font.weight: Font.DemiBold
+                    font.weight: Font.Bold
                     font.letterSpacing: -0.15
                     wrapMode: Text.NoWrap
                 }

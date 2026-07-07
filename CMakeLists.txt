@@ -70,13 +70,7 @@ target_link_libraries(user_config_backend_tests PRIVATE
 
 add_test(NAME user_config_backend COMMAND user_config_backend_tests)
 
-add_executable(tide-island-setup
-    tools/tide-island-setup.cpp
-)
-
-target_link_libraries(tide-island-setup PRIVATE
-    Qt6::Core
-)
+add_subdirectory(Tide-island-app)
 
 # Main Backend Module (Combining all C++ components)
 qt_add_qml_module(IslandBackend
@@ -152,12 +146,6 @@ install(PROGRAMS tide-island-launcher DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME
 # Install helper executables
 install(TARGETS lyricsmpris
     RUNTIME DESTINATION ${CMAKE_INSTALL_DATADIR}/tide-island/bin
-)
-install(TARGETS tide-island-setup
-    RUNTIME DESTINATION ${CMAKE_INSTALL_DATADIR}/tide-island/bin
-)
-install(TARGETS tide-island-setup
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 # Install desktop entry

@@ -122,6 +122,11 @@ PanelWindow {
         userConfig.dynamicIslandPrimaryButton,
         userConfig.dynamicIslandSecondaryButton
     ])
+    readonly property int configuredHoverExpandAction: {
+        const action = Number(userConfig.hoverExpandAction);
+        return isNaN(action) ? 0 : Math.max(0, Math.min(2, Math.round(action)));
+    }
+    readonly property bool hoverExpandEnabled: configuredHoverExpandAction > 0
     readonly property bool topGestureInputActive: !root.overviewVisible && islandContainer.canShowSideSwipe
     readonly property real topGestureInputHeight: topGestureInputActive ? root.exclusiveZone : 0
     readonly property real overviewCapsuleWidth: islandContainer.overviewView ? islandContainer.overviewView.width : 760
@@ -475,6 +480,7 @@ PanelWindow {
         property string notificationAppName: ""
         property string notificationSummary: ""
         property string notificationBody: ""
+        property bool notificationExpanded: false
         property var bluetoothExpandedDevice: null
         readonly property var cavaLevels: systemState.cavaLevels
         property real swipeTransitionProgress: 0
@@ -821,6 +827,7 @@ PanelWindow {
             notificationAppName = "";
             notificationSummary = "";
             notificationBody = "";
+            notificationExpanded = false;
             bluetoothExpandedDevice = null;
         }
 
@@ -1086,11 +1093,31 @@ PanelWindow {
             notificationAppName = cleanedAppName !== "" ? cleanedAppName : "Notification";
             notificationSummary = resolvedSummary;
             notificationBody = cleanedSummary !== "" ? cleanedBody : "";
+            notificationExpanded = false;
             islandState = "notification";
             restartAutoHideTimer(notificationAutoHideInterval);
         }
 
-        function suppressCapsuleClick() {
+        function toggleNotificationExpansionIfNeeded() {
+            if (islandState !== "notification" || !notificationLoader.item || !notificationLoader.item.hasOverflowContent)
+                return false;
+
+            if (notificationExpanded) {
+                smartRestoreState();
+                return true;
+            }
+
+            notificationExpanded = true;
+            stopAutoHideTimer();
+            return true;
+        }
+
+        function suppressCapsuleClick(cancelPreparedOverview) {
+            if (cancelPreparedOverview === undefined) cancelPreparedOverview = false;
+            if (cancelPreparedOverview && capsuleMouseArea.preparedOverviewOnPress) {
+                root.cancelPreparedOverviewEverywhere();
+                capsuleMouseArea.preparedOverviewOnPress = false;
+            }
             capsuleMouseArea.suppressNextClick = true;
             swipeSuppressReset.restart();
         }
@@ -1283,16 +1310,16 @@ PanelWindow {
             repeat: false
             onTriggered: {
                 if (!capsuleMouseArea.containsMouse) return;
-                if (!userConfig.enableHoverExpand) return;
+                if (!root.hoverExpandEnabled) return;
 
                 const current = islandContainer.islandState;
-                const target = userConfig.hoverExpandAction === 2 ? "control_center" : "expanded";
+                const target = root.configuredHoverExpandAction === 2 ? "control_center" : "expanded";
                 if (current === target) return;
                 if (current !== "normal" && current !== "custom" && current !== "lyrics")
                     return;
 
                 islandContainer.hoverExpandedActive = true;
-                if (userConfig.hoverExpandAction === 2)
+                if (root.configuredHoverExpandAction === 2)
                     islandContainer.showControlCenter();
                 else
                     islandContainer.showExpandedPlayer(false);
@@ -1387,7 +1414,7 @@ PanelWindow {
                     if (!notificationLoader.item) return 272;
                     return Math.max(
                         notificationLoader.item.minimumWidth,
-                        Math.min(notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
+                        Math.min(root.width - 48, notificationLoader.item.maximumWidth, notificationLoader.item.preferredWidth)
                     );
                 default:
                     return userConfig.islandWidth;
@@ -1408,7 +1435,7 @@ PanelWindow {
                     return 165;
                 case "notification":
                     return notificationLoader.item
-                        ? Math.max(56, Math.min(68, notificationLoader.item.preferredHeight))
+                        ? Math.max(56, notificationLoader.item.preferredHeight)
                         : 56;
                 default:
                     return userConfig.islandHeight;
@@ -1428,7 +1455,7 @@ PanelWindow {
                 case "bluetooth_expanded":
                     return 40;
                 case "notification":
-                    return mainCapsule.targetHeight / 2;
+                    return islandContainer.notificationExpanded ? 28 : mainCapsule.targetHeight / 2;
                 default:
                     return userConfig.islandHeight / 2;
                 }
@@ -1603,7 +1630,7 @@ PanelWindow {
                 enabled: !root.overviewVisible && twoFingerTouchArea.touchPoints.length < 2
                 acceptedButtons: root.dynamicIslandAcceptedButtons
                 preventStealing: true
-                hoverEnabled: userConfig.enableHoverExpand
+                hoverEnabled: root.hoverExpandEnabled
                 property real swipeStartX: 0
                 property real swipeStartY: 0
                 property real swipeStartProgress: 0
@@ -1623,7 +1650,7 @@ PanelWindow {
                 }
 
                 onEntered: {
-                    if (!userConfig.enableHoverExpand) return;
+                    if (!root.hoverExpandEnabled) return;
                     hoverCollapseDelayTimer.stop();
                     hoverExpandDelayTimer.restart();
                 }
@@ -1750,6 +1777,13 @@ PanelWindow {
                     }
 
                     if (mouse.button === userConfig.mouseButton(userConfig.dynamicIslandPrimaryButton)) {
+                        if (islandContainer.toggleNotificationExpansionIfNeeded()) {
+                            if (preparedOverviewOnPress)
+                                root.cancelPreparedOverviewEverywhere();
+                            preparedOverviewOnPress = false;
+                            return;
+                        }
+
                         preparedOverviewOnPress = false;
                         islandContainer.handleConfiguredClickAction(userConfig.dynamicIslandPrimaryAction);
                         return;
@@ -2061,11 +2095,17 @@ PanelWindow {
                         appName: islandContainer.notificationAppName
                         summary: islandContainer.notificationSummary
                         body: islandContainer.notificationBody
+                        expanded: islandContainer.notificationExpanded
+                        toggleButton: userConfig.mouseButton(userConfig.dynamicIslandPrimaryButton)
                         iconText: root.notificationStatusIcon
                         iconFontFamily: root.iconFontFamily
                         textFontFamily: root.textFontFamily
                         heroFontFamily: root.heroFontFamily
                         showCondition: true
+                        onExpansionToggleRequested: {
+                            islandContainer.suppressCapsuleClick(true);
+                            islandContainer.toggleNotificationExpansionIfNeeded();
+                        }
                     }
                 }
             }

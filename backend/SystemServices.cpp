@@ -1,4 +1,5 @@
 #include "SystemServices.h"
+#include "UserConfigBackend.h"
 
 #include <QDateTime>
 #include <QDebug>
@@ -161,7 +162,6 @@ SystemServices::~SystemServices() {
     stopProcess(m_pipeWireMonitor);
     stopProcess(m_recordingPortalMonitor);
     stopProcess(m_recordingSnapshot);
-    stopProcess(m_setupCheck);
     stopProcess(m_tlpSetter);
     stopCava();
 }
@@ -645,20 +645,28 @@ void SystemServices::requestHyprlandSnapshot(const QString &requestId, const QSt
         });
 }
 
-void SystemServices::ensureSetupComplete(const QString &shellDir) {
-    if (m_setupCheck || m_setupLaunchRequested) return;
+void SystemServices::ensureUserConfigAvailable() {
+    if (m_configAppLaunchRequested)
+        return;
 
-    const QString setupPath = QDir(shellDir).filePath(QStringLiteral("bin/tide-island-setup"));
-    m_setupCheck = startCommand(setupPath, {QStringLiteral("--check")}, 5000,
-        [this, setupPath](const CommandResult &result) {
-            m_setupCheck = nullptr;
-            if (result.exitCode == 0 || m_setupLaunchRequested)
-                return;
+    const UserConfigBackend config;
+    const QFileInfo configInfo(config.userConfigPath());
+    if (configInfo.exists() && config.configError().isEmpty())
+        return;
 
-            m_setupLaunchRequested = true;
-            if (!QProcess::startDetached(setupPath, {QStringLiteral("--launch")}))
-                qWarning() << "[SystemServices] Failed to launch setup helper:" << setupPath;
-        });
+    const QString configAppPath = findExecutable(QStringLiteral("tide-island-config-app"));
+    if (configAppPath.isEmpty()) {
+        qWarning() << "[SystemServices] Could not find tide-island-config-app for missing or invalid user config:"
+                   << config.userConfigPath()
+                   << config.configError();
+        return;
+    }
+
+    m_configAppLaunchRequested = true;
+    if (!QProcess::startDetached(configAppPath, {})) {
+        m_configAppLaunchRequested = false;
+        qWarning() << "[SystemServices] Failed to launch config app:" << configAppPath;
+    }
 }
 
 void SystemServices::generateWallpaperThumbnail(const QString &sourcePath,
@@ -822,9 +830,8 @@ void SystemServices::requestSystemStats() {
 
     qint64 totalMem = 0;
     qint64 availableMem = 0;
-    QTextStream memStream(&memFile);
-    while (!memStream.atEnd()) {
-        const QString line = memStream.readLine();
+    const QStringList memLines = QString::fromUtf8(memFile.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    for (const QString &line : memLines) {
         if (line.startsWith(QStringLiteral("MemTotal:"))) {
             const QStringList parts = line.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
             if (parts.size() >= 2) totalMem = parts.at(1).toLongLong();

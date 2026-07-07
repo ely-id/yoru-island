@@ -58,6 +58,7 @@ Item {
         refreshMissingValues();
         updateCavaSubscription();
     }
+    onUsesSystemStatsModuleChanged: refreshMissingValues()
     onUsesCavaModuleChanged: updateCavaSubscription()
     onCustomSwipeActiveChanged: updateCavaSubscription()
     onBatteryCapacityChanged: syncCustomLeftItems()
@@ -207,18 +208,16 @@ Item {
         case "workspace":
             return { id: itemId, icon: "", text: "Workspace " + currentWorkspace };
         case "cpu":
-            if (currentCpuUsage < 0) return null;
             return {
                 id: itemId,
                 icon: statusIcon("cpu"),
-                text: formatPercentText(currentCpuUsage)
+                text: currentCpuUsage >= 0 ? formatPercentText(currentCpuUsage) : "--%"
             };
         case "ram":
-            if (currentRamUsage < 0) return null;
             return {
                 id: itemId,
                 icon: statusIcon("ram"),
-                text: formatPercentText(currentRamUsage)
+                text: currentRamUsage >= 0 ? formatPercentText(currentRamUsage) : "--%"
             };
         case "cava":
             return { id: itemId, kind: "cava" };
@@ -315,7 +314,7 @@ Item {
 
         interval: 3000
         repeat: true
-        running: root.usesSystemStatsModule && root.customSwipeActive
+        running: root.usesSystemStatsModule
         triggeredOnStart: true
 
         onTriggered: SystemServices.requestSystemStats()

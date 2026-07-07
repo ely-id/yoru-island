@@ -140,7 +140,10 @@ Rectangle {
     }
 
     function notifySelectionChanged() {
-        selectionChanged(selectedIds());
+        const ids = selectedIds();
+        ConfigStore.setValue(configKey, ids);
+        ConfigStore.save();
+        selectionChanged(ids);
     }
 
     function addItem(itemId, targetIndex) {

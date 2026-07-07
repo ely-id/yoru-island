@@ -11,11 +11,15 @@ Item {
     property string summary: ""
     property string body: ""
     property string iconText: ""
+    property bool expanded: false
+    property int toggleButton: Qt.LeftButton
     property var configSource: null
     readonly property var activeConfig: configSource || userConfig
     property string iconFontFamily: activeConfig.iconFontFamily
     property string textFontFamily: activeConfig.textFontFamily
     property string heroFontFamily: activeConfig.heroFontFamily
+
+    signal expansionToggleRequested()
 
     readonly property string contentText: {
         if (summary !== "" && body !== "" && body !== summary) return summary + "  " + body;
@@ -24,17 +28,35 @@ Item {
         return "New notification";
     }
     readonly property real minimumWidth: 272
-    readonly property real maximumWidth: 400
+    readonly property real compactMaximumWidth: 400
+    readonly property real expandedMaximumWidth: 520
+    readonly property real maximumWidth: expanded && hasOverflowContent ? expandedMaximumWidth : compactMaximumWidth
     readonly property real iconSlotWidth: 18
     readonly property real contentSpacing: 13
     readonly property real horizontalPadding: 16
-    readonly property real verticalPadding: 7
-    readonly property real textBlockWidthAtMaximum: maximumWidth - horizontalPadding * 2 - iconSlotWidth - contentSpacing
+    readonly property real compactVerticalPadding: 7
+    readonly property real expandedVerticalPadding: 13
+    readonly property real verticalPadding: expanded && hasOverflowContent ? expandedVerticalPadding : compactVerticalPadding
+    readonly property real compactMaximumContentHeight: 68 - compactVerticalPadding * 2
+    readonly property real expandedMaximumContentHeight: 240 - expandedVerticalPadding * 2
+    readonly property real textBlockWidthAtMaximum: compactMaximumWidth - horizontalPadding * 2 - iconSlotWidth - contentSpacing
+    readonly property real expandedTextBlockWidthAtMaximum: expandedMaximumWidth - horizontalPadding * 2 - iconSlotWidth - contentSpacing
+    readonly property real availableWidth: Math.max(0, width - horizontalPadding * 2 - iconSlotWidth - contentSpacing)
     readonly property bool prefersWrappedContent: contentMetrics.advanceWidth > textBlockWidthAtMaximum
-    readonly property real preferredWidth: prefersWrappedContent
+    readonly property bool hasOverflowContent: compactContentProbe.lineCount > 2
+        || contentMetrics.advanceWidth > textBlockWidthAtMaximum * 2
+        || (contentMetrics.advanceWidth > textBlockWidthAtMaximum && compactContentProbe.lineCount <= 1)
+    readonly property real compactPreferredWidth: prefersWrappedContent
         ? maximumWidth
         : Math.max(minimumWidth, Math.min(maximumWidth, contentMetrics.advanceWidth + iconSlotWidth + contentSpacing + horizontalPadding * 2))
-    readonly property real preferredHeight: prefersWrappedContent ? 68 : 56
+    readonly property real compactPreferredHeight: prefersWrappedContent ? compactMaximumContentHeight + compactVerticalPadding * 2 : 56
+    readonly property real expandedPreferredWidth: expandedMaximumWidth
+    readonly property real expandedPreferredHeight: Math.max(
+        84,
+        Math.min(240, Math.min(expandedMaximumContentHeight, expandedContentProbe.implicitHeight) + expandedVerticalPadding * 2)
+    )
+    readonly property real preferredWidth: expanded && hasOverflowContent ? expandedPreferredWidth : compactPreferredWidth
+    readonly property real preferredHeight: expanded && hasOverflowContent ? expandedPreferredHeight : compactPreferredHeight
 
     anchors.fill: parent
     anchors.margins: 0
@@ -52,7 +74,40 @@ Item {
         font.family: textFontFamily
         font.pixelSize: userConfig.bodyFontSize
         font.weight: Font.DemiBold
+        font.letterSpacing: -0.15
         text: contentText
+    }
+
+    Text {
+        id: compactContentProbe
+        x: -10000
+        y: -10000
+        height: 0
+        opacity: 0
+        width: textBlockWidthAtMaximum
+        text: contentText
+        font.pixelSize: userConfig.bodyFontSize
+        font.family: textFontFamily
+        font.weight: Font.DemiBold
+        font.letterSpacing: -0.15
+        wrapMode: Text.WordWrap
+        lineHeight: 0.95
+    }
+
+    Text {
+        id: expandedContentProbe
+        x: -10000
+        y: -10000
+        height: 0
+        opacity: 0
+        width: expandedTextBlockWidthAtMaximum
+        text: contentText
+        font.pixelSize: userConfig.bodyFontSize
+        font.family: textFontFamily
+        font.weight: Font.DemiBold
+        font.letterSpacing: -0.15
+        wrapMode: Text.WordWrap
+        lineHeight: 1.05
     }
 
     Row {
@@ -80,6 +135,7 @@ Item {
             height: parent.height
 
             Text {
+                visible: !(root.expanded && root.hasOverflowContent)
                 anchors.verticalCenter: parent.verticalCenter
                 text: contentText
                 color: "white"
@@ -93,6 +149,37 @@ Item {
                 elide: Text.ElideRight
                 lineHeight: 0.95
             }
+
+            Flickable {
+                id: expandedFlickable
+                visible: root.expanded && root.hasOverflowContent
+                anchors.fill: parent
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                contentWidth: width
+                contentHeight: expandedContentText.implicitHeight
+                interactive: contentHeight > height
+
+                Text {
+                    id: expandedContentText
+                    width: expandedFlickable.width
+                    text: contentText
+                    color: "white"
+                    font.pixelSize: userConfig.bodyFontSize
+                    font.family: textFontFamily
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: -0.15
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideNone
+                    lineHeight: 1.05
+                }
+            }
         }
+    }
+
+    TapHandler {
+        enabled: root.hasOverflowContent
+        acceptedButtons: root.toggleButton
+        onTapped: root.expansionToggleRequested()
     }
 }

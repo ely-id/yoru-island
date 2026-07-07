@@ -8,6 +8,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+include(GNUInstallDirs)
+
 find_package(Qt6 REQUIRED COMPONENTS
     Gui
     Qml
@@ -53,4 +55,16 @@ qt_add_qml_module(tide-island-config-app
         Document.qml
         Interaction.qml
         Shortcut.qml
+)
+
+install(TARGETS tide-island-config-app
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/TideIsland
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/qt6/qml
+)
+
+install(FILES tide-island-config.desktop
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
 )
