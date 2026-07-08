@@ -8,7 +8,6 @@ Scope {
     id: shellRoot
 
     readonly property bool screenRecordingActive: SystemServices.screenRecordingActive
-    property bool focusEnabled: false
     property bool nightLightEnabled: false
     property bool shuttingDown: false
 
@@ -24,9 +23,6 @@ Scope {
     }
 
     function showNotificationAll(appName, summary, body) {
-        if (focusEnabled)
-            return;
-
         shellRoot.forEachWindow((window) => {
             if (window && window.showNotification)
                 window.showNotification(appName, summary, body);

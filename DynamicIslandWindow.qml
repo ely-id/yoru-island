@@ -2138,10 +2138,6 @@ PanelWindow {
                             ? root.shellRootController.nightLightEnabled
                             : false
                         showCondition: islandContainer.controlCenterLayerVisible
-                        onFocusModeChanged: function(enabled) {
-                            if (root.shellRootController && root.shellRootController.focusEnabled !== undefined)
-                                root.shellRootController.focusEnabled = enabled;
-                        }
                         onNightLightModeChanged: function(enabled) {
                             if (root.shellRootController && root.shellRootController.nightLightEnabled !== undefined)
                                 root.shellRootController.nightLightEnabled = enabled;

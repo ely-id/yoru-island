@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
+import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Io
 import IslandBackend
@@ -8,7 +9,6 @@ Item {
     id: controlCenter
 
     signal connectivityPanelRequested(string kind, bool open)
-    signal focusModeChanged(bool enabled)
     signal nightLightModeChanged(bool enabled)
     signal requestNotification(string appName, string summary, string body)
 
@@ -77,8 +77,7 @@ Item {
     property bool nightLightEnabled: false
     property bool nightLightBusy: false
     property int nightLightTemperature: 4500
-    property bool focusEnabled: false
-    property bool focusBusy: false
+    readonly property bool themeLightActive: themeModeFile.text().trim() === "light"
 
     property string wifiLocalInfoMessage: ""
     property string wifiLocalError: ""
@@ -113,6 +112,8 @@ Item {
     readonly property string brightnessIconGlyph: "\u{F00DF}"
     readonly property string volumeIconGlyph: "\u{F057E}"
     readonly property string nightLightGlyph: "\uf186"
+    readonly property string themeDarkGlyph: "\u{F00DD}"
+    readonly property string themeLightGlyph: "\u{F00E0}"
     readonly property var batteryModeGlyphs: ["", "", ""]
     readonly property real batteryDrawerHandleHeight: 20
     readonly property real batteryDrawerContentGap: 8
@@ -388,15 +389,8 @@ Item {
         }
     }
 
-    function toggleFocus() {
-        if (focusBusy)
-            return;
-
-        focusBusy = true;
-        if (focusEnabled)
-            focusDisableProcess.running = true;
-        else
-            focusEnableProcess.running = true;
+    function toggleTheme() {
+        Quickshell.execDetached([Quickshell.env("HOME") + "/.config/tide-theme/scripts/toggle-theme"]);
     }
 
     function clearWifiPrompt() {
@@ -875,7 +869,6 @@ Item {
         SystemServices.requestBrightness();
         SystemServices.requestVolume();
         refreshBatteryModeState();
-        focusStateProcess.running = true;
     }
 
     Behavior on opacity {
@@ -913,18 +906,13 @@ Item {
         }
     }
 
-    Process {
-        id: focusStateProcess
-        command: ["swaync-client", "--get-dnd"]
-        running: false
+    FileView {
+        id: themeModeFile
+        path: Quickshell.env("HOME") + "/.config/tide-theme/current-mode"
+        watchChanges: true
+        printErrors: false
 
-        stdout: SplitParser {
-            onRead: function(line) {
-                const enabled = line.trim().toLowerCase() === "true";
-                controlCenter.focusEnabled = enabled;
-                controlCenter.focusModeChanged(enabled);
-            }
-        }
+        onFileChanged: reload()
     }
 
     Process {
@@ -980,34 +968,6 @@ Item {
             controlCenter.nightLightEnabled = false;
             controlCenter.nightLightModeChanged(false);
             controlCenter.requestNotification("Night Light", "Night Light disabled", "");
-        }
-    }
-
-    Process {
-        id: focusEnableProcess
-        command: ["swaync-client", "-dn"]
-        running: false
-
-        onExited: function(exitCode) {
-            controlCenter.focusBusy = false;
-            controlCenter.focusEnabled = exitCode === 0;
-            controlCenter.focusModeChanged(controlCenter.focusEnabled);
-            if (exitCode === 0)
-                controlCenter.requestNotification("Focus", "Focus enabled", "Notifications paused");
-        }
-    }
-
-    Process {
-        id: focusDisableProcess
-        command: ["swaync-client", "-df"]
-        running: false
-
-        onExited: function(exitCode) {
-            controlCenter.focusBusy = false;
-            controlCenter.focusEnabled = false;
-            controlCenter.focusModeChanged(false);
-            if (exitCode === 0)
-                controlCenter.requestNotification("Focus", "Focus disabled", "");
         }
     }
 
@@ -1772,8 +1732,8 @@ Item {
                 MatteSurface {
                     anchors.fill: parent
                     radius: parent.radius
-                    hovered: focusButtonMouse.containsMouse || nightLightButtonMouse.containsMouse
-                    pressed: focusButtonMouse.pressed || nightLightButtonMouse.pressed
+                    hovered: themeButtonMouse.containsMouse || nightLightButtonMouse.containsMouse
+                    pressed: themeButtonMouse.pressed || nightLightButtonMouse.pressed
                 }
 
                 Rectangle {
@@ -1786,26 +1746,24 @@ Item {
                 }
 
                 Item {
-                    id: focusButton
+                    id: themeButton
                     anchors.left: parent.left
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
                     width: parent.width / 2
-                    property real slashProgress: controlCenter.focusEnabled ? 1 : 0
-                    property color iconColor: controlCenter.focusEnabled ? StyleTokens.textPrimaryBright : "#c8cad1"
 
-                    Behavior on slashProgress {
-                        NumberAnimation {
-                            duration: 830
-                            easing.type: Easing.OutCubic
-                        }
+                    MouseArea {
+                        id: themeButtonMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: controlCenter.toggleTheme()
                     }
 
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: 4
                         radius: 16
-                        color: focusButtonMouse.containsMouse ? "#08ffffff" : StyleTokens.clearBlack
+                        color: themeButtonMouse.containsMouse ? "#08ffffff" : StyleTokens.clearBlack
 
                         Behavior on color {
                             ColorAnimation {
@@ -1814,64 +1772,37 @@ Item {
                         }
                     }
 
-                    MouseArea {
-                        id: focusButtonMouse
-                        anchors.fill: parent
-                        enabled: !controlCenter.focusBusy
-                        hoverEnabled: true
-                        onClicked: controlCenter.toggleFocus()
-                    }
-
                     Item {
-                        id: focusIconSlot
+                        id: themeIconSlot
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: quickTogglesCard.toggleIconTop
                         width: parent.width
                         height: quickTogglesCard.toggleIconBoxHeight
 
-                        Shape {
-                            id: focusIcon
+                        Text {
                             anchors.centerIn: parent
-                            width: 24
-                            height: 24
-                            scale: focusButtonMouse.pressed ? 0.94 : 1.0
-                            opacity: controlCenter.focusBusy ? 0.5 : 1.0
-                            preferredRendererType: Shape.CurveRenderer
+                            anchors.verticalCenterOffset: 1
+                            text: controlCenter.themeLightActive ? controlCenter.themeLightGlyph : controlCenter.themeDarkGlyph
+                            color: "#45000000"
+                            font.pixelSize: 29
+                            font.family: iconFontFamily
+                            scale: themeButtonMouse.pressed ? 0.94 : 1.0
+                            opacity: 0.22
+                        }
+
+                        Text {
+                            id: themeIcon
+                            anchors.centerIn: parent
+                            text: controlCenter.themeLightActive ? controlCenter.themeLightGlyph : controlCenter.themeDarkGlyph
+                            color: controlCenter.themeLightActive ? StyleTokens.textPrimaryBright : "#c8cad1"
+                            font.pixelSize: 29
+                            font.family: iconFontFamily
+                            scale: themeButtonMouse.pressed ? 0.94 : 1.0
 
                             Behavior on scale {
                                 NumberAnimation {
                                     duration: 120
                                     easing.type: Easing.OutCubic
-                                }
-                            }
-
-                            ShapePath {
-                                fillColor: StyleTokens.transparent
-                                strokeColor: focusButton.iconColor
-                                strokeWidth: 2
-                                capStyle: ShapePath.RoundCap
-                                joinStyle: ShapePath.RoundJoin
-
-                                PathSvg {
-                                    path: "M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"
-                                }
-                            }
-
-                            ShapePath {
-                                fillColor: StyleTokens.transparent
-                                strokeColor: focusButton.iconColor
-                                strokeWidth: 2.1
-                                capStyle: ShapePath.RoundCap
-                                joinStyle: ShapePath.RoundJoin
-
-                                PathMove {
-                                    x: 1
-                                    y: 1
-                                }
-
-                                PathLine {
-                                    x: 1 + 22 * focusButton.slashProgress
-                                    y: 1 + 22 * focusButton.slashProgress
                                 }
                             }
                         }
@@ -1881,14 +1812,13 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: quickTogglesCard.toggleLabelTop
                         width: parent.width
-                        text: "Silent"
-                        color: controlCenter.focusEnabled ? StyleTokens.textPrimaryBright : StyleTokens.textMuted
+                        text: "Mode"
+                        color: controlCenter.themeLightActive ? StyleTokens.textPrimaryBright : StyleTokens.textMuted
                         horizontalAlignment: Text.AlignHCenter
                         font.pixelSize: 10
                         font.family: textFontFamily
                         font.weight: Font.Medium
                         elide: Text.ElideRight
-                        opacity: controlCenter.focusBusy ? 0.5 : 1.0
                     }
                 }
 
