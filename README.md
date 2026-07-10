@@ -1,3 +1,7 @@
+> [!NOTE]
+> **Yoru Island — personal learning fork, archived July 2026.**
+> This fork of [Tide Island](https://github.com/enhaoswen/Tide-island) was my Quickshell/QML study project — session menu, procedural pet (Clawd), theme toggle and UI refinements. It is now read-only; for the active project, see the upstream.
+
 <h1 align="center">Tide Island</h1>
 
 <p align="center">
